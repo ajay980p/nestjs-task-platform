@@ -1,5 +1,5 @@
 import { Controller } from '@nestjs/common';
-import { MessagePattern, Payload } from '@nestjs/microservices';
+import { MessagePattern, Payload, RpcException } from '@nestjs/microservices';
 import { AuthServiceService } from './auth-service.service';
 import { CreateUserDto, LoginUserDto } from '../../../libs/common/src/dto/create-user.dto';
 
@@ -20,5 +20,10 @@ export class AuthServiceController {
   @MessagePattern({ cmd: 'validate_user' })
   validateUser(@Payload() userId: string) {
     return this.authService.validateUser(userId);
+  }
+
+  @MessagePattern({ cmd: 'verify_token' })
+  async verifyToken(@Payload() data: { token: string }) {
+    return this.authService.verifyToken(data.token);
   }
 }

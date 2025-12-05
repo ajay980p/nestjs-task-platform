@@ -5,6 +5,7 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { User, UserDocument } from './schemas/user.schema';
 import { CreateUserDto, LoginUserDto } from '../../../libs/common/src/dto/create-user.dto';
+import { RpcException } from '@nestjs/microservices';
 
 @Injectable()
 export class AuthServiceService {
@@ -20,7 +21,10 @@ export class AuthServiceService {
     // Check if user exists
     const existingUser = await this.userModel.findOne({ email });
     if (existingUser) {
-      throw new ConflictException('User already exists');
+      throw new RpcException({
+        status: 409,
+        message: 'User already exists',
+      });
     }
 
     // Hash Password
@@ -47,13 +51,19 @@ export class AuthServiceService {
     // Find User
     const user = await this.userModel.findOne({ email });
     if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new RpcException({
+        status: 401,
+        message: 'Invalid credentials',
+      });
     }
 
     // Check Password
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid credentials');
+      throw new RpcException({
+        status: 401,
+        message: 'Invalid credentials',
+      });
     }
 
     // Generate Token - Convert _id to string for JWT payload
@@ -75,9 +85,15 @@ export class AuthServiceService {
       };
     } catch (error) {
       if (error.message && error.message.includes('secretOrPrivateKey')) {
-        throw new UnauthorizedException('JWT_SECRET is missing. Please add JWT_SECRET to your .env file');
+        throw new RpcException({
+          status: 401,
+          message: 'JWT_SECRET is missing. Please add JWT_SECRET to your .env file',
+        });
       }
-      throw new UnauthorizedException('Failed to generate token: ' + error.message);
+      throw new RpcException({
+        status: 500,
+        message: 'Failed to generate token: ' + error.message,
+      });
     }
   }
 
@@ -86,5 +102,14 @@ export class AuthServiceService {
   // 3. VALIDATE TOKEN (Gateway use karega baad mein)
   async validateUser(userId: string) {
     return this.userModel.findById(userId).select('-password');
+  }
+
+
+  async verifyToken(token: string) {
+    try {
+      return await this.jwtService.verifyAsync(token);
+    } catch (error) {
+      throw new RpcException('Invalid or Expired Token');
+    }
   }
 }

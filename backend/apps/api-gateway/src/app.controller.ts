@@ -1,6 +1,7 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, Res } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, Res, UseGuards } from '@nestjs/common';
 import type { Response } from 'express';
 import { AppService } from './app.service';
+import { AuthGuard } from './guards/auth.guard';
 import { CreateUserDto, LoginUserDto, CreateProjectDto, CreateTaskDto, UpdateTaskStatusDto } from '@app/common';
 
 @Controller() // 👈 CHANGE: Yahan se 'auth' hata diya hai. Ab ye Global Controller hai.
@@ -44,6 +45,7 @@ export class AppController {
 
 
   // --- PROJECT ROUTES (Ye ab seedha /projects pe chalenge) ---
+  @UseGuards(AuthGuard)
   @Post('projects')
   createProject(@Body() body: { dto: CreateProjectDto; userId: string }) {
     return this.appService.createProject(body.dto, body.userId);
