@@ -20,7 +20,7 @@ export class AppService {
           const errorObj = error.error || error;
           const statusCode = errorObj?.status || error.status || 500;
           const message = errorObj?.message || error.message || 'Registration failed';
-          
+
           if (statusCode === 409) {
             throw new ConflictException(message);
           }
@@ -39,7 +39,7 @@ export class AppService {
           const errorObj = error.error || error;
           const statusCode = errorObj?.status || error.status || 500;
           const message = errorObj?.message || error.message || 'Login failed';
-          
+
           if (statusCode === 401) {
             throw new UnauthorizedException(message);
           }
