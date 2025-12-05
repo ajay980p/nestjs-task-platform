@@ -1,5 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
+import { firstValueFrom } from 'rxjs';
 import { CreateUserDto, CreateProjectDto, CreateTaskDto, UpdateTaskStatusDto, LoginUserDto } from '@app/common';
 
 @Injectable()
@@ -11,13 +12,13 @@ export class AppService {
   ) { }
 
   // 1. Register Request Forward karna
-  createUser(createUserDto: CreateUserDto) {
-    return this.authClient.send({ cmd: 'register' }, createUserDto);
+  async createUser(createUserDto: CreateUserDto) {
+    return firstValueFrom(this.authClient.send({ cmd: 'register' }, createUserDto));
   }
 
   // 2. Login Request Forward karna
-  login(loginUserDto: LoginUserDto) {
-    return this.authClient.send({ cmd: 'login' }, loginUserDto);
+  async login(loginUserDto: LoginUserDto) {
+    return firstValueFrom(this.authClient.send({ cmd: 'login' }, loginUserDto));
   }
 
 

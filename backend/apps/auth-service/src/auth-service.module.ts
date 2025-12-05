@@ -29,10 +29,18 @@ import { User, UserSchema } from './schemas/user.schema';
     // 4. JWT Setup (ASYNC way mein)
     JwtModule.registerAsync({
       imports: [ConfigModule],
-      useFactory: async (configService: ConfigService) => ({
-        secret: configService.get<string>('JWT_SECRET'), // .env se secret liya
-        signOptions: { expiresIn: '1d' },
-      }),
+      useFactory: async (configService: ConfigService) => {
+        const jwtSecret = configService.get<string>('JWT_SECRET');
+        
+        if (!jwtSecret) {
+          throw new Error('JWT_SECRET is required. Please add it to your .env file');
+        }
+        
+        return {
+          secret: jwtSecret,
+          signOptions: { expiresIn: '1d' },
+        };
+      },
       inject: [ConfigService],
     }),
   ],

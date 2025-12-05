@@ -35,8 +35,10 @@ export class AuthServiceService {
     });
     await user.save();
 
-    return { message: 'User registered successfully', userId: user._id };
+    return { message: 'User registered successfully', userId: user._id.toString() };
   }
+
+
 
   // 2. LOGIN LOGIC
   async login(loginUserDto: LoginUserDto) {
@@ -54,12 +56,32 @@ export class AuthServiceService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Generate Token
-    const payload = { userId: user._id, email: user.email, role: user.role };
-    const accessToken = this.jwtService.sign(payload);
+    // Generate Token - Convert _id to string for JWT payload
+    try {
+      const payload = {
+        userId: user._id.toString(),
+        email: user.email,
+        role: user.role
+      };
+      const accessToken = this.jwtService.sign(payload);
 
-    return { accessToken, user: { id: user._id, name: user.name, role: user.role } };
+      return {
+        accessToken,
+        user: {
+          id: user._id.toString(),
+          name: user.name,
+          role: user.role
+        }
+      };
+    } catch (error) {
+      if (error.message && error.message.includes('secretOrPrivateKey')) {
+        throw new UnauthorizedException('JWT_SECRET is missing. Please add JWT_SECRET to your .env file');
+      }
+      throw new UnauthorizedException('Failed to generate token: ' + error.message);
+    }
   }
+
+
 
   // 3. VALIDATE TOKEN (Gateway use karega baad mein)
   async validateUser(userId: string) {

@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, Res } from '@nestjs/common';
+import type { Response } from 'express';
 import { AppService } from './app.service';
 import { CreateUserDto, LoginUserDto, CreateProjectDto, CreateTaskDto, UpdateTaskStatusDto } from '@app/common';
 
@@ -14,9 +15,33 @@ export class AppController {
   }
 
   @Post('auth/login')
-  login(@Body() loginUserDto: LoginUserDto) {
-    return this.appService.login(loginUserDto);
+  async login(@Body() loginUserDto: LoginUserDto, @Res({ passthrough: true }) res: Response) {
+    const result = await this.appService.login(loginUserDto);
+
+    // Set token in HTTP-only cookie (1 day expiry)
+    res.cookie('accessToken', result.accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 24 * 60 * 60 * 1000,
+      path: '/',
+    });
+
+    // Return response WITHOUT accessToken (token is in cookie)
+    const response = {
+      message: 'Login successful',
+      user: result.user,
+    };
+
+    // Ensure accessToken is not in response
+    if ('accessToken' in response) {
+      delete (response as any).accessToken;
+    }
+
+    return response;
   }
+
+
 
   // --- PROJECT ROUTES (Ye ab seedha /projects pe chalenge) ---
   @Post('projects')
