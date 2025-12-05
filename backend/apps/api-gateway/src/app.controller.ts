@@ -1,6 +1,6 @@
-import { Body, Controller, Get, Post, Param, Query } from '@nestjs/common';
+import { Body, Controller, Get, Post, Param, Query, Patch } from '@nestjs/common';
 import { AppService } from './app.service';
-import { CreateUserDto, LoginUserDto, CreateProjectDto } from '@app/common';
+import { CreateUserDto, CreateTaskDto, UpdateTaskStatusDto, LoginUserDto, CreateProjectDto } from '@app/common';
 
 @Controller('auth')
 export class AppController {
@@ -38,5 +38,24 @@ export class AppController {
   @Get('projects/:id')
   findOneProject(@Param('id') id: string) {
     return this.appService.findOneProject(id);
+  }
+
+
+
+  // --- TASKS (New Routes) ---
+
+  @Post('tasks')
+  createTask(@Body() createTaskDto: CreateTaskDto) {
+    return this.appService.createTask(createTaskDto);
+  }
+
+  @Get('projects/:projectId/tasks')
+  findTasksByProject(@Param('projectId') projectId: string) {
+    return this.appService.findTasksByProject(projectId);
+  }
+
+  @Patch('tasks/:id/status')
+  updateTaskStatus(@Param('id') id: string, @Body() dto: UpdateTaskStatusDto) {
+    return this.appService.updateTaskStatus(id, dto);
   }
 }

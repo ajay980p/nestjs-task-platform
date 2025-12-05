@@ -1,12 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
-import { CreateUserDto, CreateProjectDto, LoginUserDto } from '@app/common';
+import { CreateUserDto, CreateProjectDto, CreateTaskDto, UpdateTaskStatusDto, LoginUserDto } from '@app/common';
 
 @Injectable()
 export class AppService {
   constructor(
     @Inject('AUTH_SERVICE') private readonly authClient: ClientProxy,
     @Inject('PROJECT_SERVICE') private readonly projectClient: ClientProxy,
+    @Inject('TASK_SERVICE') private readonly taskClient: ClientProxy,
   ) { }
 
   // 1. Register Request Forward karna
@@ -35,5 +36,20 @@ export class AppService {
 
   findOneProject(id: string) {
     return this.projectClient.send({ cmd: 'get_project_by_id' }, id);
+  }
+
+
+
+  // --- TASKS (New Methods) ---
+  createTask(createTaskDto: CreateTaskDto) {
+    return this.taskClient.send({ cmd: 'create_task' }, createTaskDto);
+  }
+
+  findTasksByProject(projectId: string) {
+    return this.taskClient.send({ cmd: 'get_tasks_by_project' }, projectId);
+  }
+
+  updateTaskStatus(taskId: string, dto: UpdateTaskStatusDto) {
+    return this.taskClient.send({ cmd: 'update_task_status' }, { taskId, dto });
   }
 }
