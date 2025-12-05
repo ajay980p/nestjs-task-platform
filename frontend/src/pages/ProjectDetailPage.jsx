@@ -4,6 +4,7 @@ import { Loader2, Plus, ArrowLeft, X, Calendar, User } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { taskApi } from '../api/taskApi';
 import { projectApi } from '../api/projectApi';
+import { authApi } from '../api/authApi';
 
 const TASK_STATUS = {
   TO_DO: 'TO_DO',
@@ -20,6 +21,8 @@ const ProjectDetailPage = () => {
   const [error, setError] = useState(null);
   const [showTaskModal, setShowTaskModal] = useState(false);
   const [userName, setUserName] = useState('');
+  const [allUsers, setAllUsers] = useState([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   
   const [newTask, setNewTask] = useState({
     title: '',
@@ -43,7 +46,17 @@ const ProjectDetailPage = () => {
 
   useEffect(() => {
     fetchProjectAndTasks();
+    fetchAllUsers();
   }, [projectId]);
+
+  const fetchAllUsers = async () => {
+    try {
+      const users = await authApi.getAllUsers();
+      setAllUsers(users);
+    } catch (err) {
+      console.error('Failed to load users:', err);
+    }
+  };
 
   const fetchProjectAndTasks = async () => {
     setIsLoading(true);
@@ -81,6 +94,20 @@ const ProjectDetailPage = () => {
     } catch (err) {
       const errorMessage = err.response?.data?.message || err.message || 'Failed to update task status';
       toast.error(errorMessage);
+    }
+  };
+
+  const handleOpenTaskModal = async () => {
+    setShowTaskModal(true);
+    // Fetch all users when modal opens
+    setIsLoadingUsers(true);
+    try {
+      const users = await authApi.getAllUsers();
+      setAllUsers(users);
+    } catch (err) {
+      toast.error('Failed to load users');
+    } finally {
+      setIsLoadingUsers(false);
     }
   };
 
@@ -184,7 +211,7 @@ const ProjectDetailPage = () => {
         {/* Add Task Button */}
         <div className="mb-6">
           <button
-            onClick={() => setShowTaskModal(true)}
+            onClick={handleOpenTaskModal}
             className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-md font-semibold hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors shadow-md"
           >
             <Plus className="h-5 w-5" />
@@ -208,6 +235,7 @@ const ProjectDetailPage = () => {
                   task={task}
                   onStatusUpdate={handleStatusUpdate}
                   formatDate={formatDate}
+                  allUsers={allUsers}
                 />
               ))}
               {tasksByStatus.TO_DO.length === 0 && (
@@ -232,6 +260,7 @@ const ProjectDetailPage = () => {
                   task={task}
                   onStatusUpdate={handleStatusUpdate}
                   formatDate={formatDate}
+                  allUsers={allUsers}
                 />
               ))}
               {tasksByStatus.IN_PROGRESS.length === 0 && (
@@ -256,6 +285,7 @@ const ProjectDetailPage = () => {
                   task={task}
                   onStatusUpdate={handleStatusUpdate}
                   formatDate={formatDate}
+                  allUsers={allUsers}
                 />
               ))}
               {tasksByStatus.DONE.length === 0 && (
@@ -275,6 +305,8 @@ const ProjectDetailPage = () => {
           setNewTask={setNewTask}
           onClose={() => setShowTaskModal(false)}
           onSubmit={handleCreateTask}
+          allUsers={allUsers}
+          isLoadingUsers={isLoadingUsers}
         />
       )}
     </div>
@@ -282,10 +314,17 @@ const ProjectDetailPage = () => {
 };
 
 // Task Card Component
-const TaskCard = ({ task, onStatusUpdate, formatDate }) => {
+const TaskCard = ({ task, onStatusUpdate, formatDate, allUsers }) => {
   const getStatusOptions = (currentStatus) => {
     const allStatuses = Object.values(TASK_STATUS);
     return allStatuses.filter((status) => status !== currentStatus);
+  };
+
+  // Find user name from user ID
+  const getAssignedUserName = (userId) => {
+    if (!userId || !allUsers || allUsers.length === 0) return userId;
+    const user = allUsers.find((u) => (u.id || u._id) === userId);
+    return user ? (user.name || user.email || userId) : userId;
   };
 
   return (
@@ -305,7 +344,7 @@ const TaskCard = ({ task, onStatusUpdate, formatDate }) => {
         {task.assignedTo && (
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <User className="h-4 w-4" />
-            <span>{task.assignedTo}</span>
+            <span>{getAssignedUserName(task.assignedTo)}</span>
           </div>
         )}
       </div>
@@ -325,7 +364,7 @@ const TaskCard = ({ task, onStatusUpdate, formatDate }) => {
 };
 
 // Task Modal Component
-const TaskModal = ({ newTask, setNewTask, onClose, onSubmit }) => {
+const TaskModal = ({ newTask, setNewTask, onClose, onSubmit, allUsers, isLoadingUsers }) => {
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
@@ -385,16 +424,28 @@ const TaskModal = ({ newTask, setNewTask, onClose, onSubmit }) => {
 
           <div>
             <label htmlFor="assignedTo" className="block text-sm font-medium text-gray-700 mb-2">
-              Assigned To (User ID)
+              Assigned To
             </label>
-            <input
-              type="text"
-              id="assignedTo"
-              value={newTask.assignedTo}
-              onChange={(e) => setNewTask({ ...newTask, assignedTo: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900"
-              placeholder="Enter user ID (optional)"
-            />
+            {isLoadingUsers ? (
+              <div className="flex items-center gap-2 px-3 py-2 border border-gray-300 rounded-md bg-white">
+                <Loader2 className="h-4 w-4 animate-spin text-indigo-600" />
+                <span className="text-sm text-gray-500">Loading users...</span>
+              </div>
+            ) : (
+              <select
+                id="assignedTo"
+                value={newTask.assignedTo}
+                onChange={(e) => setNewTask({ ...newTask, assignedTo: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 bg-white"
+              >
+                <option value="">Select a user (optional)</option>
+                {allUsers.map((user) => (
+                  <option key={user.id || user._id} value={user.id || user._id}>
+                    {user.name || user.email} {user.email && user.name ? `(${user.email})` : ''}
+                  </option>
+                ))}
+              </select>
+            )}
           </div>
 
           <div className="flex gap-3 pt-4">
