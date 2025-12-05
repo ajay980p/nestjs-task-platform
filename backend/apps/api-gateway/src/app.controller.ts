@@ -59,6 +59,19 @@ export class AppController {
     };
   }
 
+  @UseGuards(AuthGuard)
+  @Get('auth/users')
+  async getAllUsers() {
+    const users = await this.appService.getAllUsers();
+    return users.map((user: any) => ({
+      id: user._id.toString(),
+      _id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    }));
+  }
+
   // --- PROJECT ROUTES (Ye ab seedha /projects pe chalenge) ---
   @UseGuards(AuthGuard)
   @Post('projects')

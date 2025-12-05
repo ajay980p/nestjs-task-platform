@@ -37,7 +37,19 @@ export class AuthServiceController {
 
   @MessagePattern({ cmd: 'get_profile' })
   async getProfile(@Payload() userId: string) {
-    console.log('getProfile', userId);
     return this.authService.validateUser(userId);
+  }
+
+  @MessagePattern({ cmd: 'get_all_users' })
+  async getAllUsers(@Payload() data?: any) {
+    try {
+      const users = await this.authService.getAllUsers();
+      return users;
+    } catch (error) {
+      throw new RpcException({
+        status: 500,
+        message: error.message || 'Failed to fetch users',
+      });
+    }
   }
 }

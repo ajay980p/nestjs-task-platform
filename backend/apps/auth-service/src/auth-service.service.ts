@@ -104,6 +104,15 @@ export class AuthServiceService {
     return this.userModel.findById(userId).select('-password');
   }
 
+  // 4. Get All Users (for Admin to assign to projects)
+  async getAllUsers() {
+    try {
+      const users = await this.userModel.find({ role: 'USER' }).select('-password').exec();
+      return users || [];
+    } catch (error) {
+      throw new Error(`Failed to fetch users: ${error.message}`);
+    }
+  }
 
   async verifyToken(token: string) {
     try {

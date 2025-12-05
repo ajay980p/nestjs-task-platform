@@ -16,8 +16,11 @@ export const projectApi = {
     return response.data;
   },
 
-  create: async (data) => {
-    const response = await axiosClient.post('/projects', data);
+  create: async (data, userId) => {
+    const response = await axiosClient.post('/projects', {
+      dto: data,
+      userId: userId,
+    });
     return response.data;
   },
 };

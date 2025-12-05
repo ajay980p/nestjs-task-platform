@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, LogOut, Plus, FolderKanban } from 'lucide-react';
+import { Loader2, LogOut, Plus, FolderKanban, X } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { projectApi } from '../api/projectApi';
 import { authApi } from '../api/authApi';
@@ -11,6 +11,14 @@ const DashboardPage = () => {
   const [projects, setProjects] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [allUsers, setAllUsers] = useState([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const [formData, setFormData] = useState({
+    title: '',
+    description: '',
+    assignedUsers: [],
+  });
 
   useEffect(() => {
     // Fetch user profile from backend using token
@@ -71,8 +79,94 @@ const DashboardPage = () => {
     navigate('/login');
   };
 
-  const handleCreateProject = () => {
-    navigate('/projects/create');
+  const handleCreateProject = async () => {
+    setShowCreateModal(true);
+    // Fetch all users when modal opens
+    setIsLoadingUsers(true);
+    try {
+      const users = await authApi.getAllUsers();
+      setAllUsers(users);
+    } catch (err) {
+      toast.error('Failed to load users');
+    } finally {
+      setIsLoadingUsers(false);
+    }
+  };
+
+  const handleCloseModal = () => {
+    setShowCreateModal(false);
+    setFormData({
+      title: '',
+      description: '',
+      assignedUsers: [],
+    });
+  };
+
+  const handleFormChange = (e) => {
+    const { name, value } = e.target;
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
+
+  const handleUserSelection = (userId) => {
+    setFormData((prev) => {
+      const isSelected = prev.assignedUsers.includes(userId);
+      if (isSelected) {
+        return {
+          ...prev,
+          assignedUsers: prev.assignedUsers.filter((id) => id !== userId),
+        };
+      } else {
+        return {
+          ...prev,
+          assignedUsers: [...prev.assignedUsers, userId],
+        };
+      }
+    });
+  };
+
+  const handleSubmitProject = async (e) => {
+    e.preventDefault();
+
+    if (!formData.title.trim()) {
+      toast.error('Project title is required');
+      return;
+    }
+
+    if (!user) {
+      toast.error('User not found');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      const projectData = {
+        title: formData.title.trim(),
+        ...(formData.description.trim() && { description: formData.description.trim() }),
+        ...(formData.assignedUsers.length > 0 && { assignedUsers: formData.assignedUsers }),
+      };
+
+      await projectApi.create(projectData, user.id || user._id);
+      toast.success('Project created successfully!');
+      handleCloseModal();
+
+      // Refresh projects list
+      if (user.role === 'ADMIN') {
+        const updatedProjects = await projectApi.getAll();
+        setProjects(Array.isArray(updatedProjects) ? updatedProjects : []);
+      } else {
+        const updatedProjects = await projectApi.getMyProjects(user.id || user._id);
+        setProjects(Array.isArray(updatedProjects) ? updatedProjects : []);
+      }
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to create project';
+      toast.error(errorMessage);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleProjectClick = (projectId) => {
@@ -181,6 +275,136 @@ const DashboardPage = () => {
           </div>
         )}
       </main>
+
+      {/* Create Project Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-2xl font-bold text-gray-900">Create New Project</h2>
+              <button
+                onClick={handleCloseModal}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+              >
+                <X className="h-5 w-5 text-gray-600" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmitProject} className="p-6 space-y-6">
+              {/* Title Field */}
+              <div>
+                <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
+                  Project Title <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  id="title"
+                  name="title"
+                  value={formData.title}
+                  onChange={handleFormChange}
+                  required
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors text-gray-900 placeholder-gray-400"
+                  placeholder="Enter project title"
+                />
+              </div>
+
+              {/* Description Field */}
+              <div>
+                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-2">
+                  Description
+                </label>
+                <textarea
+                  id="description"
+                  name="description"
+                  value={formData.description}
+                  onChange={handleFormChange}
+                  rows="4"
+                  className="w-full px-3 py-2.5 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-colors text-gray-900 placeholder-gray-400"
+                  placeholder="Enter project description (optional)"
+                />
+              </div>
+
+              {/* Assign Users Dropdown */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Assign Users
+                </label>
+                {isLoadingUsers ? (
+                  <div className="flex items-center justify-center py-4">
+                    <Loader2 className="h-5 w-5 animate-spin text-indigo-600" />
+                  </div>
+                ) : (
+                  <div className="border border-gray-300 rounded-md max-h-60 overflow-y-auto">
+                    {allUsers.length === 0 ? (
+                      <div className="p-4 text-center text-gray-500 text-sm">
+                        No users available
+                      </div>
+                    ) : (
+                      <div className="divide-y divide-gray-200">
+                        {allUsers.map((userItem) => {
+                          const isSelected = formData.assignedUsers.includes(userItem.id || userItem._id);
+                          return (
+                            <label
+                              key={userItem.id || userItem._id}
+                              className={`flex items-center gap-3 p-3 cursor-pointer hover:bg-gray-50 transition-colors ${isSelected ? 'bg-indigo-50' : ''
+                                }`}
+                            >
+                              <input
+                                type="checkbox"
+                                checked={isSelected}
+                                onChange={() => handleUserSelection(userItem.id || userItem._id)}
+                                className="w-4 h-4 text-indigo-600 border-gray-300 rounded focus:ring-indigo-500"
+                              />
+                              <div className="flex-1">
+                                <div className="font-medium text-gray-900">
+                                  {userItem.name || userItem.email}
+                                </div>
+                                <div className="text-sm text-gray-500">
+                                  {userItem.email} {userItem.role && `• ${userItem.role}`}
+                                </div>
+                              </div>
+                              {isSelected && (
+                                <div className="text-indigo-600 text-sm font-medium">
+                                  Selected
+                                </div>
+                              )}
+                            </label>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                )}
+                {formData.assignedUsers.length > 0 && (
+                  <div className="mt-2">
+                    <p className="text-sm text-gray-600">
+                      {formData.assignedUsers.length} user(s) selected
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Submit Buttons */}
+              <div className="flex gap-3 pt-4">
+                <button
+                  type="button"
+                  onClick={handleCloseModal}
+                  className="flex-1 px-6 py-3 border border-gray-300 text-gray-700 rounded-md font-semibold hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isLoading}
+                  className="flex-1 px-6 py-3 bg-indigo-600 text-white rounded-md font-semibold hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  {isLoading ? 'Creating...' : 'Create Project'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

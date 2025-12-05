@@ -15,5 +15,10 @@ export const authApi = {
     const response = await axiosClient.get('/auth/me');
     return response.data;
   },
+
+  getAllUsers: async () => {
+    const response = await axiosClient.get('/auth/users');
+    return response.data;
+  },
 };
 

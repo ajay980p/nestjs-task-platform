@@ -63,6 +63,20 @@ export class AppService {
     );
   }
 
+  // 4. Get All Users
+  async getAllUsers() {
+    return firstValueFrom(
+      this.authClient.send({ cmd: 'get_all_users' }, {}).pipe(
+        catchError((error) => {
+          const errorObj = error.error || error;
+          const statusCode = errorObj?.status || error.status || 500;
+          const message = errorObj?.message || error.message || 'Failed to get users';
+          throw new HttpException(message, statusCode);
+        })
+      )
+    );
+  }
+
   // --- PROJECTS ---
   createProject(createProjectDto: CreateProjectDto, userId: string) {
     return this.projectClient.send({ cmd: 'create_project' }, { dto: createProjectDto, userId });
