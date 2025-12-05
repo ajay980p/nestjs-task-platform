@@ -2,7 +2,7 @@ import { Body, Controller, Get, Param, Patch, Post, Query, Req, Res, UseGuards, 
 import type { Response } from 'express';
 import { AppService } from './app.service';
 import { AuthGuard } from './guards/auth.guard';
-import { CreateUserDto, LoginUserDto, CreateProjectDto, CreateTaskDto, UpdateTaskStatusDto } from '@app/common';
+import { CreateUserDto, LoginUserDto, CreateProjectDto, CreateTaskDto, UpdateTaskStatusDto, UpdateProjectDto } from '@app/common';
 
 @Controller() // 👈 CHANGE: Yahan se 'auth' hata diya hai. Ab ye Global Controller hai.
 export class AppController {
@@ -92,6 +92,12 @@ export class AppController {
   @Get('projects/:id')
   findOneProject(@Param('id') id: string) {
     return this.appService.findOneProject(id);
+  }
+
+  @UseGuards(AuthGuard)
+  @Patch('projects/:id')
+  updateProject(@Param('id') id: string, @Body() updateProjectDto: UpdateProjectDto) {
+    return this.appService.updateProject(id, updateProjectDto);
   }
 
   // --- TASK ROUTES (Ye ab seedha /tasks pe chalenge) ---

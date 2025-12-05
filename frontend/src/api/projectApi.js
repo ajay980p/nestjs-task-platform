@@ -23,5 +23,10 @@ export const projectApi = {
     });
     return response.data;
   },
+
+  update: async (projectId, data) => {
+    const response = await axiosClient.patch(`/projects/${projectId}`, data);
+    return response.data;
+  },
 };
 

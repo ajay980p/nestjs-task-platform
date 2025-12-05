@@ -1,7 +1,7 @@
 import { Inject, Injectable, UnauthorizedException, ConflictException, HttpException } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom, catchError } from 'rxjs';
-import { CreateUserDto, CreateProjectDto, CreateTaskDto, UpdateTaskStatusDto, LoginUserDto } from '@app/common';
+import { CreateUserDto, CreateProjectDto, CreateTaskDto, UpdateTaskStatusDto, UpdateProjectDto, LoginUserDto } from '@app/common';
 
 @Injectable()
 export class AppService {
@@ -92,6 +92,10 @@ export class AppService {
 
   findOneProject(id: string) {
     return this.projectClient.send({ cmd: 'get_project_by_id' }, id);
+  }
+
+  updateProject(id: string, updateProjectDto: UpdateProjectDto) {
+    return this.projectClient.send({ cmd: 'update_project' }, { id, dto: updateProjectDto });
   }
 
 

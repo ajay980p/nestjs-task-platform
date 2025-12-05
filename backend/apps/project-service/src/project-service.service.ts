@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { Project, ProjectDocument } from './schemas/project.schema';
-import { CreateProjectDto } from '@app/common'; // Shared Library se import
+import { CreateProjectDto, UpdateProjectDto } from '@app/common'; // Shared Library se import
 
 @Injectable()
 export class ProjectServiceService {
@@ -38,5 +38,28 @@ export class ProjectServiceService {
   // 4. Find One (Task Service validation ke liye)
   async findOne(id: string) {
     return this.projectModel.findById(id).exec();
+  }
+
+  // 5. Update Project
+  async update(id: string, updateProjectDto: UpdateProjectDto) {
+    const updateData: any = {};
+    
+    if (updateProjectDto.title) {
+      updateData.title = updateProjectDto.title;
+    }
+    
+    if (updateProjectDto.description !== undefined) {
+      updateData.description = updateProjectDto.description;
+    }
+    
+    if (updateProjectDto.assignedUsers) {
+      updateData.assignedUsers = updateProjectDto.assignedUsers.map(userId => new Types.ObjectId(userId));
+    }
+
+    return this.projectModel.findByIdAndUpdate(
+      id,
+      { $set: updateData },
+      { new: true }
+    ).exec();
   }
 }
