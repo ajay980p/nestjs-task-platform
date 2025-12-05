@@ -12,7 +12,7 @@ export class AuthGuard implements CanActivate {
         const request = context.switchToHttp().getRequest();
 
         // 1. Cookie se Token nikaalo (ya Header se fallback)
-        const token = request.cookies['Authentication'] || request.headers.authorization?.split(' ')[1];
+        const token = request.cookies['accessToken'] || request.headers.authorization?.split(' ')[1];
 
         if (!token) {
             throw new UnauthorizedException('No token provided');

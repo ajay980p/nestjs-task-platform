@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, Req, Res, UseGuards, UnauthorizedException } from '@nestjs/common';
 import type { Response } from 'express';
 import { AppService } from './app.service';
 import { AuthGuard } from './guards/auth.guard';
@@ -42,7 +42,22 @@ export class AppController {
     return response;
   }
 
-
+  @UseGuards(AuthGuard)
+  @Get('auth/me')
+  async getProfile(@Req() req: any) {
+    const userId = req.user?.userId || req.user?.id;
+    if (!userId) {
+      throw new UnauthorizedException('User ID not found in token');
+    }
+    const user = await this.appService.getProfile(userId);
+    return {
+      id: user._id.toString(),
+      _id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    };
+  }
 
   // --- PROJECT ROUTES (Ye ab seedha /projects pe chalenge) ---
   @UseGuards(AuthGuard)

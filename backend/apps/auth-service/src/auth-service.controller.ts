@@ -24,6 +24,20 @@ export class AuthServiceController {
 
   @MessagePattern({ cmd: 'verify_token' })
   async verifyToken(@Payload() data: { token: string }) {
-    return this.authService.verifyToken(data.token);
+    const decoded = await this.authService.verifyToken(data.token);
+    // Return user details
+    const user = await this.authService.validateUser(decoded.userId);
+    return {
+      userId: user?._id?.toString() || '',
+      email: user?.email || '',
+      name: user?.name || '',
+      role: user?.role || '',
+    };
+  }
+
+  @MessagePattern({ cmd: 'get_profile' })
+  async getProfile(@Payload() userId: string) {
+    console.log('getProfile', userId);
+    return this.authService.validateUser(userId);
   }
 }

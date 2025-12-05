@@ -49,6 +49,19 @@ export class AppService {
     );
   }
 
+  // 3. Get User Profile
+  async getProfile(userId: string) {
+    return firstValueFrom(
+      this.authClient.send({ cmd: 'get_profile' }, userId).pipe(
+        catchError((error) => {
+          const errorObj = error.error || error;
+          const statusCode = errorObj?.status || error.status || 500;
+          const message = errorObj?.message || error.message || 'Failed to get profile';
+          throw new HttpException(message, statusCode);
+        })
+      )
+    );
+  }
 
   // --- PROJECTS ---
   createProject(createProjectDto: CreateProjectDto, userId: string) {

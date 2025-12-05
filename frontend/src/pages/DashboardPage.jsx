@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Loader2, LogOut, Plus, FolderKanban } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { projectApi } from '../api/projectApi';
+import { authApi } from '../api/authApi';
 
 const DashboardPage = () => {
   const navigate = useNavigate();
@@ -12,22 +13,24 @@ const DashboardPage = () => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    // Read user from localStorage
-    const userData = localStorage.getItem('user');
-    if (!userData) {
-      toast.error('Please login to continue');
-      navigate('/login');
-      return;
-    }
+    // Fetch user profile from backend using token
+    const fetchUserProfile = async () => {
+      try {
+        const userData = await authApi.getProfile();
+        setUser(userData);
+        // Also save to localStorage for quick access (optional)
+        localStorage.setItem('user', JSON.stringify(userData));
+      } catch (err) {
+        const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch user profile';
+        toast.error(errorMessage);
+        // Clear localStorage if token is invalid
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('user');
+        navigate('/login');
+      }
+    };
 
-    try {
-      const parsedUser = JSON.parse(userData);
-      setUser(parsedUser);
-    } catch (err) {
-      console.error('Error parsing user data:', err);
-      toast.error('Invalid user data');
-      navigate('/login');
-    }
+    fetchUserProfile();
   }, [navigate]);
 
   useEffect(() => {
