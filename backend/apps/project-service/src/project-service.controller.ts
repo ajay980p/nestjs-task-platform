@@ -61,10 +61,10 @@ export class ProjectServiceController {
 
   // Update an existing project's details (title, description, assigned users)
   @MessagePattern({ cmd: 'update_project' })
-  async update(@Payload() data: { id: string; dto: UpdateProjectDto }) {
+  async update(@Payload() data: { id: string; dto: UpdateProjectDto; userId?: string }) {
     try {
       console.log('update_project message received:', data);
-      const result = await this.projectService.update(data.id, data.dto);
+      const result = await this.projectService.update(data.id, data.dto, data.userId);
       return result;
     } catch (error) {
       throw new RpcException({

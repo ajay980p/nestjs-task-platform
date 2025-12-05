@@ -94,8 +94,8 @@ export class AppService {
     return this.projectClient.send({ cmd: 'get_project_by_id' }, id);
   }
 
-  updateProject(id: string, updateProjectDto: UpdateProjectDto) {
-    return this.projectClient.send({ cmd: 'update_project' }, { id, dto: updateProjectDto });
+  updateProject(id: string, updateProjectDto: UpdateProjectDto, userId?: string) {
+    return this.projectClient.send({ cmd: 'update_project' }, { id, dto: updateProjectDto, userId });
   }
 
 

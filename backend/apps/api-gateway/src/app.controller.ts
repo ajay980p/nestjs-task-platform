@@ -96,8 +96,9 @@ export class AppController {
 
   @UseGuards(AuthGuard)
   @Patch('projects/:id')
-  updateProject(@Param('id') id: string, @Body() updateProjectDto: UpdateProjectDto) {
-    return this.appService.updateProject(id, updateProjectDto);
+  updateProject(@Param('id') id: string, @Body() updateProjectDto: UpdateProjectDto, @Req() req: any) {
+    const userId = req.user?.userId || req.user?.id;
+    return this.appService.updateProject(id, updateProjectDto, userId);
   }
 
   // --- TASK ROUTES (Ye ab seedha /tasks pe chalenge) ---

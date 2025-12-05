@@ -16,6 +16,36 @@ const DashboardPage = () => {
   const [editingProject, setEditingProject] = useState(null);
   const [allUsers, setAllUsers] = useState([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+
+  // Helper function to filter out admin users and get only USER role user IDs
+  const filterUserRoleIds = (assignedUsersArray) => {
+    if (!assignedUsersArray || assignedUsersArray.length === 0) return [];
+
+    // Convert all IDs to strings
+    const userIds = assignedUsersArray.map(u => {
+      if (typeof u === 'string') return u;
+      if (u._id) return u._id.toString();
+      if (u.id) return u.id.toString();
+      return u.toString();
+    });
+
+    // Filter to only include IDs that exist in allUsers (which are all USER role)
+    if (allUsers.length > 0) {
+      const userRoleIds = new Set(
+        allUsers.map(u => (u.id || u._id)?.toString()).filter(Boolean)
+      );
+      return userIds.filter(userId => userRoleIds.has(userId.toString()));
+    }
+
+    // Fallback: if we don't have allUsers loaded yet, assume all are USER except first one (admin)
+    return userIds.slice(1);
+  };
+
+  // Helper function to count only USER role users (exclude ADMIN)
+  const getAssignedUsersCount = (project) => {
+    const userIds = filterUserRoleIds(project.assignedUsers);
+    return userIds.length;
+  };
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -77,6 +107,17 @@ const DashboardPage = () => {
     };
 
     fetchProjects();
+
+    // Also fetch all users for counting assigned users correctly
+    const fetchUsers = async () => {
+      try {
+        const users = await authApi.getAllUsers();
+        setAllUsers(users);
+      } catch (err) {
+        console.error('Failed to load users:', err);
+      }
+    };
+    fetchUsers();
   }, [user]);
 
   const handleLogout = () => {
@@ -101,19 +142,35 @@ const DashboardPage = () => {
   };
 
   const handleEditProject = async (project) => {
-    setEditingProject(project);
-    setEditFormData({
-      title: project.title || project.name || '',
-      description: project.description || '',
-      assignedUsers: project.assignedUsers?.map((u) => (typeof u === 'string' ? u : u._id || u.id)) || [],
-    });
-    setShowEditModal(true);
-
-    // Fetch all users when modal opens
+    // Fetch all users first so we can filter admin from assignedUsers
     setIsLoadingUsers(true);
     try {
       const users = await authApi.getAllUsers();
       setAllUsers(users);
+
+      // Now filter out admin users from assignedUsers before setting editFormData
+      const assignedUserIds = project.assignedUsers?.map((u) => {
+        if (typeof u === 'string') return u;
+        if (u._id) return u._id.toString();
+        if (u.id) return u.id.toString();
+        return u.toString();
+      }) || [];
+
+      // Filter to only include USER role users (exclude admin)
+      const userRoleIds = new Set(
+        users.map(u => (u.id || u._id)?.toString()).filter(Boolean)
+      );
+      const filteredAssignedUsers = assignedUserIds.filter(userId =>
+        userRoleIds.has(userId.toString())
+      );
+
+      setEditingProject(project);
+      setEditFormData({
+        title: project.title || project.name || '',
+        description: project.description || '',
+        assignedUsers: filteredAssignedUsers,
+      });
+      setShowEditModal(true);
     } catch (err) {
       toast.error('Failed to load users');
     } finally {
@@ -382,7 +439,7 @@ const DashboardPage = () => {
                   )}
                   <div className="flex items-center justify-between text-sm text-gray-500">
                     <span>
-                      {project.assignedUsers?.length || 0} assigned
+                      {getAssignedUsersCount(project)} assigned
                     </span>
                     {project.status && (
                       <span className="px-2 py-1 bg-indigo-100 text-indigo-700 rounded-full text-xs font-medium">

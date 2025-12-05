@@ -41,7 +41,7 @@ export class ProjectServiceService {
   }
 
   // 5. Update Project
-  async update(id: string, updateProjectDto: UpdateProjectDto) {
+  async update(id: string, updateProjectDto: UpdateProjectDto, userId?: string) {
     const updateData: any = {};
     
     if (updateProjectDto.title) {
@@ -52,8 +52,18 @@ export class ProjectServiceService {
       updateData.description = updateProjectDto.description;
     }
     
-    if (updateProjectDto.assignedUsers) {
-      updateData.assignedUsers = updateProjectDto.assignedUsers.map(userId => new Types.ObjectId(userId));
+    if (updateProjectDto.assignedUsers !== undefined) {
+      // Get existing project to preserve admin in assignedUsers
+      const existingProject = await this.projectModel.findById(id).exec();
+      const adminId = existingProject?.createdBy || (userId ? new Types.ObjectId(userId) : null);
+      
+      // Always include admin, then add the new assigned users
+      const newAssignedUsers = updateProjectDto.assignedUsers.map(userId => new Types.ObjectId(userId));
+      if (adminId && !newAssignedUsers.some(id => id.equals(adminId))) {
+        updateData.assignedUsers = [adminId, ...newAssignedUsers];
+      } else {
+        updateData.assignedUsers = newAssignedUsers;
+      }
     }
 
     return this.projectModel.findByIdAndUpdate(
