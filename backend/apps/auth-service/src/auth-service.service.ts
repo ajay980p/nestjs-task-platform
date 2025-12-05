@@ -1,0 +1,68 @@
+import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { InjectModel } from '@nestjs/mongoose';
+import { Model } from 'mongoose';
+import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcryptjs';
+import { User, UserDocument } from './schemas/user.schema';
+import { CreateUserDto, LoginUserDto } from '../../../libs/common/src/dto/create-user.dto';
+
+@Injectable()
+export class AuthServiceService {
+  constructor(
+    @InjectModel(User.name) private userModel: Model<UserDocument>,
+    private jwtService: JwtService,
+  ) { }
+
+  // 1. REGISTER LOGIC
+  async register(createUserDto: CreateUserDto) {
+    const { email, password, name, role } = createUserDto;
+
+    // Check if user exists
+    const existingUser = await this.userModel.findOne({ email });
+    if (existingUser) {
+      throw new ConflictException('User already exists');
+    }
+
+    // Hash Password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Save User
+    const user = new this.userModel({
+      name,
+      email,
+      password: hashedPassword,
+      role,
+    });
+    await user.save();
+
+    return { message: 'User registered successfully', userId: user._id };
+  }
+
+  // 2. LOGIN LOGIC
+  async login(loginUserDto: LoginUserDto) {
+    const { email, password } = loginUserDto;
+
+    // Find User
+    const user = await this.userModel.findOne({ email });
+    if (!user) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    // Check Password
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Invalid credentials');
+    }
+
+    // Generate Token
+    const payload = { userId: user._id, email: user.email, role: user.role };
+    const accessToken = this.jwtService.sign(payload);
+
+    return { accessToken, user: { id: user._id, name: user.name, role: user.role } };
+  }
+
+  // 3. VALIDATE TOKEN (Gateway use karega baad mein)
+  async validateUser(userId: string) {
+    return this.userModel.findById(userId).select('-password');
+  }
+}
