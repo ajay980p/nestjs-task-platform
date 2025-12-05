@@ -1,49 +1,45 @@
-import { Body, Controller, Get, Post, Param, Query, Patch } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query } from '@nestjs/common';
 import { AppService } from './app.service';
-import { CreateUserDto, CreateTaskDto, UpdateTaskStatusDto, LoginUserDto, CreateProjectDto } from '@app/common';
+import { CreateUserDto, LoginUserDto, CreateProjectDto, CreateTaskDto, UpdateTaskStatusDto } from '@app/common';
 
-@Controller('auth')
+@Controller() // 👈 CHANGE: Yahan se 'auth' hata diya hai. Ab ye Global Controller hai.
 export class AppController {
   constructor(private readonly appService: AppService) { }
 
-  @Post('register')
+  // --- AUTH ROUTES (Yahan manually 'auth/' lagaya hai) ---
+
+  @Post('auth/register')
   register(@Body() createUserDto: CreateUserDto) {
     return this.appService.createUser(createUserDto);
   }
 
-  @Post('login')
+  @Post('auth/login')
   login(@Body() loginUserDto: LoginUserDto) {
     return this.appService.login(loginUserDto);
   }
 
-
+  // --- PROJECT ROUTES (Ye ab seedha /projects pe chalenge) ---
   @Post('projects')
   createProject(@Body() body: { dto: CreateProjectDto; userId: string }) {
     return this.appService.createProject(body.dto, body.userId);
   }
 
-  // 2. Get All Projects (Admin)
   @Get('projects')
   findAllProjects() {
     return this.appService.findAllProjects();
   }
 
-  // 3. Get My Projects (User)
   @Get('projects/my')
   findMyProjects(@Query('userId') userId: string) {
     return this.appService.findMyProjects(userId);
   }
 
-  // 4. Get Single Project
   @Get('projects/:id')
   findOneProject(@Param('id') id: string) {
     return this.appService.findOneProject(id);
   }
 
-
-
-  // --- TASKS (New Routes) ---
-
+  // --- TASK ROUTES (Ye ab seedha /tasks pe chalenge) ---
   @Post('tasks')
   createTask(@Body() createTaskDto: CreateTaskDto) {
     return this.appService.createTask(createTaskDto);
