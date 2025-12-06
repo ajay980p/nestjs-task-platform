@@ -49,6 +49,14 @@ const LoginPage = () => {
     }
   };
 
+  const handleForgotPassword = (e) => {
+    e.preventDefault();
+    toast('Coming Soon!', {
+      icon: 'ℹ️',
+      duration: 3000,
+    });
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="w-full max-w-[380px] px-4">
@@ -114,12 +122,13 @@ const LoginPage = () => {
 
           {/* Forgot Password Link */}
           <div className="mt-6 text-center">
-            <Link
-              to="/forgot-password"
-              className="text-sm text-indigo-600 hover:text-indigo-700 font-medium"
+            <button
+              type="button"
+              onClick={handleForgotPassword}
+              className="text-sm text-indigo-600 hover:text-indigo-700 font-medium cursor-pointer"
             >
               Forgot your password?
-            </Link>
+            </button>
           </div>
 
           {/* Register Link */}
