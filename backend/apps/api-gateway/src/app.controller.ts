@@ -42,6 +42,19 @@ export class AppController {
     return response;
   }
 
+  @Post('auth/logout')
+  logout(@Res({ passthrough: true }) res: Response) {
+    // Clear the accessToken cookie
+    res.cookie('accessToken', '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 0, // Expire immediately
+      path: '/',
+    });
+    return { message: 'Logged out successfully' };
+  }
+
   @UseGuards(AuthGuard)
   @Get('auth/me')
   async getProfile(@Req() req: any) {

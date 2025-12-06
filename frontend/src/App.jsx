@@ -3,16 +3,51 @@ import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import ProjectDetailPage from './pages/ProjectDetailPage';
+import ProtectedRoute from './components/ProtectedRoute';
+import PublicRoute from './components/PublicRoute';
 
 function App() {
   return (
     <Router>
       <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/" element={<Navigate to="/login" replace />} />
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="/dashboard" element={<DashboardPage />} />
-        <Route path="/project/:projectId" element={<ProjectDetailPage />} />
+        {/* Public Routes - Redirect to dashboard if already logged in (cookie check) */}
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <LoginPage />
+            </PublicRoute>
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            <PublicRoute>
+              <RegisterPage />
+            </PublicRoute>
+          }
+        />
+
+        {/* Default route */}
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+
+        {/* Protected Routes - Redirect to login if not authenticated (cookie check) */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/project/:projectId"
+          element={
+            <ProtectedRoute>
+              <ProjectDetailPage />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </Router>
   );

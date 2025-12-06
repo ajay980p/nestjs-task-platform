@@ -20,5 +20,10 @@ export const authApi = {
     const response = await axiosClient.get('/auth/users');
     return response.data;
   },
+
+  logout: async () => {
+    const response = await axiosClient.post('/auth/logout');
+    return response.data;
+  },
 };
 

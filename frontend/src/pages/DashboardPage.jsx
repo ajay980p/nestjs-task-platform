@@ -120,11 +120,19 @@ const DashboardPage = () => {
     fetchUsers();
   }, [user]);
 
-  const handleLogout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('user');
-    toast.success('Logged out successfully');
-    navigate('/login');
+  const handleLogout = async () => {
+    try {
+      // Call logout API to clear cookie from backend
+      await authApi.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      // Clear localStorage
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('user');
+      toast.success('Logged out successfully');
+      navigate('/login');
+    }
   };
 
   const handleCreateProject = async () => {
