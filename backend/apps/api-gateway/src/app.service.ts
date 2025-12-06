@@ -82,8 +82,8 @@ export class AppService {
     return this.projectClient.send({ cmd: 'create_project' }, { dto: createProjectDto, userId });
   }
 
-  findAllProjects() {
-    return this.projectClient.send({ cmd: 'get_all_projects' }, {});
+  findAllProjects(userId: string) {
+    return this.projectClient.send({ cmd: 'get_all_projects' }, { userId });
   }
 
   findMyProjects(userId: string) {

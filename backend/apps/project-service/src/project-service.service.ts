@@ -23,9 +23,11 @@ export class ProjectServiceService {
     return newProject.save();
   }
 
-  // 2. Get All Projects (Admin Only)
-  async findAll() {
-    return this.projectModel.find().exec();
+  // 2. Get All Projects by Creator (Admin Only - filters by createdBy)
+  async findAll(userId: string) {
+    return this.projectModel.find({
+      createdBy: new Types.ObjectId(userId)
+    }).exec();
   }
 
   // 3. Get My Projects (User Only)

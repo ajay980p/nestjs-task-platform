@@ -88,20 +88,46 @@ export class AppController {
   // --- PROJECT ROUTES (Ye ab seedha /projects pe chalenge) ---
   @UseGuards(AuthGuard)
   @Post('projects')
-  createProject(@Body() body: { dto: CreateProjectDto; userId: string }) {
-    return this.appService.createProject(body.dto, body.userId);
+  createProject(@Body() body: { dto: CreateProjectDto }, @Req() req: any) {
+    // userId token se automatically extract ho jayega
+    const userId = req.user?.userId || req.user?.id;
+    if (!userId) {
+      throw new UnauthorizedException('User ID not found in token');
+    }
+    return this.appService.createProject(body.dto, userId);
   }
 
+  @UseGuards(AuthGuard)
   @Get('projects')
-  findAllProjects() {
-    return this.appService.findAllProjects();
+  async findAllProjects(@Req() req: any) {
+    // userId aur role token se automatically extract ho jayega
+    const userId = req.user?.userId || req.user?.id;
+    const userRole = req.user?.role;
+
+    if (!userId) {
+      throw new UnauthorizedException('User ID not found in token');
+    }
+
+    // Agar ADMIN hai to saare projects dikhao, warna sirf apne projects
+    if (userRole === 'ADMIN') {
+      return this.appService.findAllProjects(userId);
+    } else {
+      return this.appService.findMyProjects(userId);
+    }
   }
 
+  @UseGuards(AuthGuard)
   @Get('projects/my')
-  findMyProjects(@Query('userId') userId: string) {
+  findMyProjects(@Req() req: any) {
+    // userId token se automatically extract ho jayega
+    const userId = req.user?.userId || req.user?.id;
+    if (!userId) {
+      throw new UnauthorizedException('User ID not found in token');
+    }
     return this.appService.findMyProjects(userId);
   }
 
+  @UseGuards(AuthGuard)
   @Get('projects/:id')
   findOneProject(@Param('id') id: string) {
     return this.appService.findOneProject(id);
@@ -115,16 +141,22 @@ export class AppController {
   }
 
   // --- TASK ROUTES (Ye ab seedha /tasks pe chalenge) ---
+  @UseGuards(AuthGuard)
   @Post('tasks')
-  createTask(@Body() createTaskDto: CreateTaskDto) {
+  createTask(@Body() createTaskDto: CreateTaskDto, @Req() req: any) {
+    // userId token se automatically extract ho jayega (if needed in future)
+    const userId = req.user?.userId || req.user?.id;
+    // Currently createTaskDto me already userId ho sakta hai, but token se verify kar sakte hain
     return this.appService.createTask(createTaskDto);
   }
 
+  @UseGuards(AuthGuard)
   @Get('projects/:projectId/tasks')
   findTasksByProject(@Param('projectId') projectId: string) {
     return this.appService.findTasksByProject(projectId);
   }
 
+  @UseGuards(AuthGuard)
   @Patch('tasks/:id/status')
   updateTaskStatus(@Param('id') id: string, @Body() dto: UpdateTaskStatusDto) {
     return this.appService.updateTaskStatus(id, dto);

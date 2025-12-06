@@ -20,11 +20,11 @@ export class ProjectServiceController {
     }
   }
 
-  // Get all projects in the system (typically used by Admin)
+  // Get all projects created by a specific user (typically used by Admin to see their own projects)
   @MessagePattern({ cmd: 'get_all_projects' })
-  async findAll() {
+  async findAll(@Payload() data: { userId: string }) {
     try {
-      return await this.projectService.findAll();
+      return await this.projectService.findAll(data.userId);
     } catch (error) {
       throw new RpcException({
         status: 500,

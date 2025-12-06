@@ -86,15 +86,10 @@ const DashboardPage = () => {
       setError(null);
 
       try {
-        let projectData;
-
-        if (user.role === 'ADMIN') {
-          // Admin: Fetch all projects
-          projectData = await projectApi.getAll();
-        } else {
-          // User: Fetch only assigned projects
-          projectData = await projectApi.getMyProjects(user.id || user._id);
-        }
+        // Backend automatically handles role-based logic:
+        // - ADMIN: Returns all projects
+        // - USER: Returns only assigned projects
+        const projectData = await projectApi.getAll();
 
         setProjects(Array.isArray(projectData) ? projectData : []);
       } catch (err) {
@@ -248,14 +243,9 @@ const DashboardPage = () => {
       toast.success('Project updated successfully!');
       handleCloseEditModal();
 
-      // Refresh projects list
-      if (user.role === 'ADMIN') {
-        const updatedProjects = await projectApi.getAll();
-        setProjects(Array.isArray(updatedProjects) ? updatedProjects : []);
-      } else {
-        const updatedProjects = await projectApi.getMyProjects(user.id || user._id);
-        setProjects(Array.isArray(updatedProjects) ? updatedProjects : []);
-      }
+      // Refresh projects list (backend automatically handles role-based logic)
+      const updatedProjects = await projectApi.getAll();
+      setProjects(Array.isArray(updatedProjects) ? updatedProjects : []);
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.message || 'Failed to update project';
       toast.error(errorMessage);
@@ -320,18 +310,13 @@ const DashboardPage = () => {
         ...(formData.assignedUsers.length > 0 && { assignedUsers: formData.assignedUsers }),
       };
 
-      await projectApi.create(projectData, user.id || user._id);
+      await projectApi.create(projectData);
       toast.success('Project created successfully!');
       handleCloseModal();
 
-      // Refresh projects list
-      if (user.role === 'ADMIN') {
-        const updatedProjects = await projectApi.getAll();
-        setProjects(Array.isArray(updatedProjects) ? updatedProjects : []);
-      } else {
-        const updatedProjects = await projectApi.getMyProjects(user.id || user._id);
-        setProjects(Array.isArray(updatedProjects) ? updatedProjects : []);
-      }
+      // Refresh projects list (backend automatically handles role-based logic)
+      const updatedProjects = await projectApi.getAll();
+      setProjects(Array.isArray(updatedProjects) ? updatedProjects : []);
     } catch (error) {
       const errorMessage = error.response?.data?.message || error.message || 'Failed to create project';
       toast.error(errorMessage);
