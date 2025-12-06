@@ -46,6 +46,6 @@ export class TaskServiceService {
       taskId,
       { status: updateTaskStatusDto.status },
       { new: true },
-    );
+    ).exec();
   }
 }
