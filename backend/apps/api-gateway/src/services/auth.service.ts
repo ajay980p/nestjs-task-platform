@@ -1,6 +1,7 @@
 import { Inject, Injectable, UnauthorizedException, ConflictException, HttpException } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom, catchError } from 'rxjs';
+import type { Response } from 'express';
 import { CreateUserDto, LoginUserDto } from '@app/common';
 
 @Injectable()
@@ -28,9 +29,9 @@ export class AuthService {
     );
   }
 
-  // Login Request Forward karna
-  async login(loginUserDto: LoginUserDto) {
-    return firstValueFrom(
+  // Login Request Forward karna with cookie handling
+  async login(loginUserDto: LoginUserDto, res: Response) {
+    const result = await firstValueFrom(
       this.authClient.send({ cmd: 'login' }, loginUserDto).pipe(
         catchError((error) => {
           // Handle RpcException format
@@ -45,11 +46,39 @@ export class AuthService {
         })
       )
     );
+
+    // Set token in HTTP-only cookie (1 day expiry)
+    res.cookie('accessToken', result.accessToken, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 24 * 60 * 60 * 1000,
+      path: '/',
+    });
+
+    // Return response WITHOUT accessToken (token is in cookie)
+    return {
+      message: 'Login successful',
+      user: result.user,
+    };
   }
 
-  // Get User Profile
+  // Logout - Clear cookie
+  logout(res: Response) {
+    // Clear the accessToken cookie
+    res.cookie('accessToken', '', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 0, // Expire immediately
+      path: '/',
+    });
+    return { message: 'Logged out successfully' };
+  }
+
+  // Get User Profile with formatted response
   async getProfile(userId: string) {
-    return firstValueFrom(
+    const user = await firstValueFrom(
       this.authClient.send({ cmd: 'get_profile' }, userId).pipe(
         catchError((error) => {
           const errorObj = error.error || error;
@@ -59,11 +88,20 @@ export class AuthService {
         })
       )
     );
+
+    // Format response
+    return {
+      id: user._id.toString(),
+      _id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    };
   }
 
-  // Get All Users
+  // Get All Users with formatted response
   async getAllUsers() {
-    return firstValueFrom(
+    const users = await firstValueFrom(
       this.authClient.send({ cmd: 'get_all_users' }, {}).pipe(
         catchError((error) => {
           const errorObj = error.error || error;
@@ -73,6 +111,15 @@ export class AuthService {
         })
       )
     );
+
+    // Format response
+    return users.map((user: any) => ({
+      id: user._id.toString(),
+      _id: user._id.toString(),
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    }));
   }
 }
 
