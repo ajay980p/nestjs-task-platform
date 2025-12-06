@@ -1,17 +1,15 @@
 import { Inject, Injectable, UnauthorizedException, ConflictException, HttpException } from '@nestjs/common';
 import { ClientProxy } from '@nestjs/microservices';
 import { firstValueFrom, catchError } from 'rxjs';
-import { CreateUserDto, CreateProjectDto, CreateTaskDto, UpdateTaskStatusDto, UpdateProjectDto, LoginUserDto } from '@app/common';
+import { CreateUserDto, LoginUserDto } from '@app/common';
 
 @Injectable()
-export class AppService {
+export class AuthService {
   constructor(
     @Inject('AUTH_SERVICE') private readonly authClient: ClientProxy,
-    @Inject('PROJECT_SERVICE') private readonly projectClient: ClientProxy,
-    @Inject('TASK_SERVICE') private readonly taskClient: ClientProxy,
-  ) { }
+  ) {}
 
-  // 1. Register Request Forward karna
+  // Register Request Forward karna
   async createUser(createUserDto: CreateUserDto) {
     return firstValueFrom(
       this.authClient.send({ cmd: 'register' }, createUserDto).pipe(
@@ -30,7 +28,7 @@ export class AppService {
     );
   }
 
-  // 2. Login Request Forward karna
+  // Login Request Forward karna
   async login(loginUserDto: LoginUserDto) {
     return firstValueFrom(
       this.authClient.send({ cmd: 'login' }, loginUserDto).pipe(
@@ -49,7 +47,7 @@ export class AppService {
     );
   }
 
-  // 3. Get User Profile
+  // Get User Profile
   async getProfile(userId: string) {
     return firstValueFrom(
       this.authClient.send({ cmd: 'get_profile' }, userId).pipe(
@@ -63,7 +61,7 @@ export class AppService {
     );
   }
 
-  // 4. Get All Users
+  // Get All Users
   async getAllUsers() {
     return firstValueFrom(
       this.authClient.send({ cmd: 'get_all_users' }, {}).pipe(
@@ -76,40 +74,5 @@ export class AppService {
       )
     );
   }
-
-  // --- PROJECTS ---
-  createProject(createProjectDto: CreateProjectDto, userId: string) {
-    return this.projectClient.send({ cmd: 'create_project' }, { dto: createProjectDto, userId });
-  }
-
-  findAllProjects(userId: string) {
-    return this.projectClient.send({ cmd: 'get_all_projects' }, { userId });
-  }
-
-  findMyProjects(userId: string) {
-    return this.projectClient.send({ cmd: 'get_my_projects' }, userId);
-  }
-
-  findOneProject(id: string) {
-    return this.projectClient.send({ cmd: 'get_project_by_id' }, id);
-  }
-
-  updateProject(id: string, updateProjectDto: UpdateProjectDto, userId?: string) {
-    return this.projectClient.send({ cmd: 'update_project' }, { id, dto: updateProjectDto, userId });
-  }
-
-
-
-  // --- TASKS (New Methods) ---
-  createTask(createTaskDto: CreateTaskDto) {
-    return this.taskClient.send({ cmd: 'create_task' }, createTaskDto);
-  }
-
-  findTasksByProject(projectId: string) {
-    return this.taskClient.send({ cmd: 'get_tasks_by_project' }, projectId);
-  }
-
-  updateTaskStatus(taskId: string, dto: UpdateTaskStatusDto) {
-    return this.taskClient.send({ cmd: 'update_task_status' }, { taskId, dto });
-  }
 }
+
