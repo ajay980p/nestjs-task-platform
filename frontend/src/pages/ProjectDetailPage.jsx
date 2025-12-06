@@ -1,5 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { Loader2, Plus, ArrowLeft, X, Calendar, User } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { taskApi } from '../api/taskApi';
@@ -12,72 +16,89 @@ const TASK_STATUS = {
   DONE: 'DONE',
 };
 
+// Validation schema for Create Task form
+const createTaskSchema = z.object({
+  title: z
+    .string()
+    .min(1, 'Task title is required')
+    .min(3, 'Task title must be at least 3 characters')
+    .max(100, 'Task title must be less than 100 characters')
+    .trim(),
+  description: z
+    .string()
+    .max(500, 'Description must be less than 500 characters')
+    .optional()
+    .or(z.literal('')),
+  dueDate: z
+    .string()
+    .min(1, 'Due date is required')
+    .refine((date) => {
+      const selectedDate = new Date(date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return selectedDate >= today;
+    }, 'Due date must be today or in the future'),
+  assignedTo: z.string().optional().or(z.literal('')),
+});
+
 const ProjectDetailPage = () => {
   const { projectId } = useParams();
   const navigate = useNavigate();
-  const [tasks, setTasks] = useState([]);
-  const [project, setProject] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const queryClient = useQueryClient();
   const [showTaskModal, setShowTaskModal] = useState(false);
-  const [userName, setUserName] = useState('');
-  const [allUsers, setAllUsers] = useState([]);
-  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
-  
-  const [newTask, setNewTask] = useState({
-    title: '',
-    description: '',
-    dueDate: '',
-    assignedTo: '',
+
+  // Fetch user profile using React Query
+  const { data: user } = useQuery({
+    queryKey: ['userProfile'],
+    queryFn: async () => {
+      const userData = await authApi.getProfile();
+      localStorage.setItem('user', JSON.stringify(userData));
+      return userData;
+    },
+    retry: false,
   });
 
-  useEffect(() => {
-    // Read user name from localStorage
-    const userData = localStorage.getItem('user');
-    if (userData) {
-      try {
-        const user = JSON.parse(userData);
-        setUserName(user.name || user.email || 'User');
-      } catch (err) {
-        console.error('Error parsing user data:', err);
-      }
-    }
-  }, []);
+  // Fetch project details using React Query
+  const {
+    data: project,
+    isLoading: isLoadingProject,
+    error: projectError,
+  } = useQuery({
+    queryKey: ['project', projectId],
+    queryFn: async () => {
+      return await projectApi.getById(projectId);
+    },
+    enabled: !!projectId,
+    retry: false,
+  });
 
-  useEffect(() => {
-    fetchProjectAndTasks();
-    fetchAllUsers();
-  }, [projectId]);
-
-  const fetchAllUsers = async () => {
-    try {
-      const users = await authApi.getAllUsers();
-      setAllUsers(users);
-    } catch (err) {
-      console.error('Failed to load users:', err);
-    }
-  };
-
-  const fetchProjectAndTasks = async () => {
-    setIsLoading(true);
-    setError(null);
-
-    try {
-      // Fetch project details
-      const projectData = await projectApi.getById(projectId);
-      setProject(projectData);
-
-      // Fetch tasks for this project
+  // Fetch tasks using React Query
+  const {
+    data: tasks = [],
+    isLoading: isLoadingTasks,
+    error: tasksError,
+  } = useQuery({
+    queryKey: ['tasks', projectId],
+    queryFn: async () => {
       const tasksData = await taskApi.getByProject(projectId);
-      setTasks(Array.isArray(tasksData) ? tasksData : []);
-    } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to fetch project data';
-      setError(errorMessage);
-      toast.error(errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+      return Array.isArray(tasksData) ? tasksData : [];
+    },
+    enabled: !!projectId,
+    retry: false,
+  });
+
+  // Fetch all users using React Query
+  const {
+    data: allUsers = [],
+    isLoading: isLoadingUsers,
+  } = useQuery({
+    queryKey: ['allUsers'],
+    queryFn: async () => {
+      return await authApi.getAllUsers();
+    },
+    enabled: showTaskModal, // Only fetch when modal is open
+    retry: false,
+  });
 
   // Group tasks by status
   const tasksByStatus = {
@@ -86,57 +107,52 @@ const ProjectDetailPage = () => {
     DONE: tasks.filter((task) => task.status === TASK_STATUS.DONE),
   };
 
-  const handleStatusUpdate = async (taskId, newStatus) => {
-    try {
-      await taskApi.updateStatus(taskId, newStatus);
+  // Update task status mutation
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ taskId, status }) => {
+      return await taskApi.updateStatus(taskId, status);
+    },
+    onSuccess: () => {
       toast.success('Task status updated successfully');
-      fetchProjectAndTasks(); // Refresh tasks
-    } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to update task status';
+      queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
+    },
+    onError: (error) => {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to update task status';
       toast.error(errorMessage);
-    }
-  };
+    },
+  });
 
-  const handleOpenTaskModal = async () => {
-    setShowTaskModal(true);
-    // Fetch all users when modal opens
-    setIsLoadingUsers(true);
-    try {
-      const users = await authApi.getAllUsers();
-      setAllUsers(users);
-    } catch (err) {
-      toast.error('Failed to load users');
-    } finally {
-      setIsLoadingUsers(false);
-    }
-  };
-
-  const handleCreateTask = async (e) => {
-    e.preventDefault();
-
-    if (!newTask.title || !newTask.dueDate) {
-      toast.error('Title and Due Date are required');
-      return;
-    }
-
-    try {
-      await taskApi.create({
-        ...newTask,
+  // Create task mutation
+  const createTaskMutation = useMutation({
+    mutationFn: async (taskData) => {
+      return await taskApi.create({
+        ...taskData,
         projectId: projectId,
       });
+    },
+    onSuccess: () => {
       toast.success('Task created successfully');
       setShowTaskModal(false);
-      setNewTask({
-        title: '',
-        description: '',
-        dueDate: '',
-        assignedTo: '',
-      });
-      fetchProjectAndTasks(); // Refresh tasks
-    } catch (err) {
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to create task';
+      queryClient.invalidateQueries({ queryKey: ['tasks', projectId] });
+    },
+    onError: (error) => {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to create task';
       toast.error(errorMessage);
-    }
+    },
+  });
+
+  const handleStatusUpdate = (taskId, newStatus) => {
+    updateStatusMutation.mutate({ taskId, status: newStatus });
+  };
+
+  const handleOpenTaskModal = () => {
+    setShowTaskModal(true);
+    // Invalidate users query to refetch when modal opens
+    queryClient.invalidateQueries({ queryKey: ['allUsers'] });
+  };
+
+  const handleCloseTaskModal = () => {
+    setShowTaskModal(false);
   };
 
   const formatDate = (dateString) => {
@@ -153,6 +169,9 @@ const ProjectDetailPage = () => {
     }
   };
 
+  const isLoading = isLoadingProject || isLoadingTasks;
+  const error = projectError || tasksError;
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -162,10 +181,11 @@ const ProjectDetailPage = () => {
   }
 
   if (error && !project) {
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch project data';
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-100">
         <div className="bg-white rounded-lg shadow-md p-6 text-center">
-          <p className="text-red-600 mb-4">{error}</p>
+          <p className="text-red-600 mb-4">{errorMessage}</p>
           <button
             onClick={() => navigate('/dashboard')}
             className="text-indigo-600 hover:text-indigo-700 font-medium"
@@ -200,7 +220,7 @@ const ProjectDetailPage = () => {
               </div>
             </div>
             <div className="text-sm text-gray-600">
-              Welcome, {userName}
+              Welcome, {user?.name || user?.email || 'User'}
             </div>
           </div>
         </div>
@@ -301,12 +321,11 @@ const ProjectDetailPage = () => {
       {/* Create Task Modal */}
       {showTaskModal && (
         <TaskModal
-          newTask={newTask}
-          setNewTask={setNewTask}
-          onClose={() => setShowTaskModal(false)}
-          onSubmit={handleCreateTask}
+          onClose={handleCloseTaskModal}
+          onSubmit={(data) => createTaskMutation.mutate(data)}
           allUsers={allUsers}
           isLoadingUsers={isLoadingUsers}
+          isPending={createTaskMutation.isPending}
         />
       )}
     </div>
@@ -315,11 +334,6 @@ const ProjectDetailPage = () => {
 
 // Task Card Component
 const TaskCard = ({ task, onStatusUpdate, formatDate, allUsers }) => {
-  const getStatusOptions = (currentStatus) => {
-    const allStatuses = Object.values(TASK_STATUS);
-    return allStatuses.filter((status) => status !== currentStatus);
-  };
-
   // Find user name from user ID
   const getAssignedUserName = (userId) => {
     if (!userId || !allUsers || allUsers.length === 0) return userId;
@@ -330,7 +344,7 @@ const TaskCard = ({ task, onStatusUpdate, formatDate, allUsers }) => {
   return (
     <div className="bg-white rounded-lg shadow-sm p-4 hover:shadow-md transition-shadow border border-gray-200">
       <h3 className="font-semibold text-gray-900 mb-2">{task.title}</h3>
-      
+
       {task.description && (
         <p className="text-sm text-gray-600 mb-3 line-clamp-2">{task.description}</p>
       )}
@@ -340,7 +354,7 @@ const TaskCard = ({ task, onStatusUpdate, formatDate, allUsers }) => {
           <Calendar className="h-4 w-4" />
           <span>{formatDate(task.dueDate)}</span>
         </div>
-        
+
         {task.assignedTo && (
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <User className="h-4 w-4" />
@@ -364,21 +378,52 @@ const TaskCard = ({ task, onStatusUpdate, formatDate, allUsers }) => {
 };
 
 // Task Modal Component
-const TaskModal = ({ newTask, setNewTask, onClose, onSubmit, allUsers, isLoadingUsers }) => {
+const TaskModal = ({ onClose, onSubmit, allUsers, isLoadingUsers, isPending }) => {
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+    reset,
+  } = useForm({
+    resolver: zodResolver(createTaskSchema),
+    defaultValues: {
+      title: '',
+      description: '',
+      dueDate: '',
+      assignedTo: '',
+    },
+  });
+
+  const handleFormSubmit = (data) => {
+    const taskData = {
+      title: data.title.trim(),
+      ...(data.description?.trim() && { description: data.description.trim() }),
+      dueDate: data.dueDate,
+      ...(data.assignedTo && data.assignedTo.trim() && { assignedTo: data.assignedTo.trim() }),
+    };
+    onSubmit(taskData);
+    reset(); // Reset form after submission
+  };
+
+  const handleClose = () => {
+    reset(); // Reset form when closing
+    onClose();
+  };
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-xl font-bold text-gray-900">Create New Task</h2>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           >
             <X className="h-5 w-5 text-gray-600" />
           </button>
         </div>
 
-        <form onSubmit={onSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit(handleFormSubmit)} className="p-6 space-y-4">
           <div>
             <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-2">
               Title <span className="text-red-500">*</span>
@@ -386,12 +431,14 @@ const TaskModal = ({ newTask, setNewTask, onClose, onSubmit, allUsers, isLoading
             <input
               type="text"
               id="title"
-              value={newTask.title}
-              onChange={(e) => setNewTask({ ...newTask, title: e.target.value })}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900"
+              {...register('title')}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 placeholder-gray-400 ${errors.title ? 'border-red-500' : 'border-gray-300'
+                }`}
               placeholder="Enter task title"
             />
+            {errors.title && (
+              <p className="mt-1 text-sm text-red-600">{errors.title.message}</p>
+            )}
           </div>
 
           <div>
@@ -400,12 +447,15 @@ const TaskModal = ({ newTask, setNewTask, onClose, onSubmit, allUsers, isLoading
             </label>
             <textarea
               id="description"
-              value={newTask.description}
-              onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
+              {...register('description')}
               rows="3"
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900"
-              placeholder="Enter task description"
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 placeholder-gray-400 ${errors.description ? 'border-red-500' : 'border-gray-300'
+                }`}
+              placeholder="Enter task description (optional)"
             />
+            {errors.description && (
+              <p className="mt-1 text-sm text-red-600">{errors.description.message}</p>
+            )}
           </div>
 
           <div>
@@ -415,11 +465,13 @@ const TaskModal = ({ newTask, setNewTask, onClose, onSubmit, allUsers, isLoading
             <input
               type="date"
               id="dueDate"
-              value={newTask.dueDate}
-              onChange={(e) => setNewTask({ ...newTask, dueDate: e.target.value })}
-              required
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900"
+              {...register('dueDate')}
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 ${errors.dueDate ? 'border-red-500' : 'border-gray-300'
+                }`}
             />
+            {errors.dueDate && (
+              <p className="mt-1 text-sm text-red-600">{errors.dueDate.message}</p>
+            )}
           </div>
 
           <div>
@@ -434,9 +486,9 @@ const TaskModal = ({ newTask, setNewTask, onClose, onSubmit, allUsers, isLoading
             ) : (
               <select
                 id="assignedTo"
-                value={newTask.assignedTo}
-                onChange={(e) => setNewTask({ ...newTask, assignedTo: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 bg-white"
+                {...register('assignedTo')}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-gray-900 bg-white ${errors.assignedTo ? 'border-red-500' : 'border-gray-300'
+                  }`}
               >
                 <option value="">Select a user (optional)</option>
                 {allUsers.map((user) => (
@@ -446,21 +498,25 @@ const TaskModal = ({ newTask, setNewTask, onClose, onSubmit, allUsers, isLoading
                 ))}
               </select>
             )}
+            {errors.assignedTo && (
+              <p className="mt-1 text-sm text-red-600">{errors.assignedTo.message}</p>
+            )}
           </div>
 
           <div className="flex gap-3 pt-4">
             <button
               type="button"
-              onClick={onClose}
+              onClick={handleClose}
               className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-md font-medium hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-md font-semibold hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors"
+              disabled={isPending}
+              className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-md font-semibold hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              Create Task
+              {isPending ? 'Creating...' : 'Create Task'}
             </button>
           </div>
         </form>
