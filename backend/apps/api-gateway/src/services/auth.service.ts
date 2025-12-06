@@ -8,7 +8,7 @@ import { CreateUserDto, LoginUserDto } from '@app/common';
 export class AuthService {
   constructor(
     @Inject('AUTH_SERVICE') private readonly authClient: ClientProxy,
-  ) {}
+  ) { }
 
   // Register Request Forward karna
   async createUser(createUserDto: CreateUserDto) {

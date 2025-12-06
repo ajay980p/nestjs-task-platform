@@ -7,16 +7,19 @@ import { CreateTaskDto, UpdateTaskStatusDto } from '@app/common';
 export class TaskServiceController {
   constructor(private readonly taskService: TaskServiceService) { }
 
+  // Create a new task for a project after validating project exists
   @MessagePattern({ cmd: 'create_task' })
   create(@Payload() data: CreateTaskDto) {
     return this.taskService.create(data);
   }
 
+  // Get all tasks assigned to a specific project
   @MessagePattern({ cmd: 'get_tasks_by_project' })
   findByProject(@Payload() projectId: string) {
     return this.taskService.findByProject(projectId);
   }
 
+  // Update task status (TO_DO, IN_PROGRESS, DONE)
   @MessagePattern({ cmd: 'update_task_status' })
   updateStatus(@Payload() data: { taskId: string; dto: UpdateTaskStatusDto }) {
     return this.taskService.updateStatus(data.taskId, data.dto);

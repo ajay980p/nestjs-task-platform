@@ -7,13 +7,13 @@ import { Project, ProjectSchema } from './schemas/project.schema';
 
 @Module({
   imports: [
-    // 1. Config Module (Global)
+    // Load configuration module to access environment variables from .env file
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: './.env',
     }),
 
-    // 2. Database Connection
+    // Connect to MongoDB database using connection URI from environment variables
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
@@ -22,7 +22,7 @@ import { Project, ProjectSchema } from './schemas/project.schema';
       inject: [ConfigService],
     }),
 
-    // 3. Register Project Schema
+    // Register Project schema for database operations
     MongooseModule.forFeature([{ name: Project.name, schema: ProjectSchema }]),
   ],
   controllers: [ProjectServiceController],

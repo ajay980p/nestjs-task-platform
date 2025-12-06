@@ -8,34 +8,34 @@ import { User, UserSchema } from './schemas/user.schema';
 
 @Module({
   imports: [
-    // 1. Config Module Load Kar (Taaki .env padh sake)
+    // Load configuration module to access environment variables from .env file
     ConfigModule.forRoot({
-      isGlobal: true, // Ye zaroori hai taaki baaki modules bhi isse use kar sakein
-      envFilePath: './.env', // Root folder se .env uthayega
+      isGlobal: true,
+      envFilePath: './.env',
     }),
 
-    // 2. Database Connection (ASYNC way mein, taaki ConfigService inject ho sake)
+    // Connect to MongoDB database using connection URI from environment variables
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
-        uri: configService.get<string>('MONGO_URI'), // .env se value li
+        uri: configService.get<string>('MONGO_URI'),
       }),
       inject: [ConfigService],
     }),
 
-    // 3. Load User Schema (Ye same rahega)
+    // Register User schema for database operations
     MongooseModule.forFeature([{ name: User.name, schema: UserSchema }]),
 
-    // 4. JWT Setup (ASYNC way mein)
+    // Configure JWT module with secret key and token expiration settings
     JwtModule.registerAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => {
         const jwtSecret = configService.get<string>('JWT_SECRET');
-        
+
         if (!jwtSecret) {
           throw new Error('JWT_SECRET is required. Please add it to your .env file');
         }
-        
+
         return {
           secret: jwtSecret,
           signOptions: { expiresIn: '1d' },

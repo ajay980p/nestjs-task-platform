@@ -1,10 +1,10 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { Model } from 'mongoose';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { User, UserDocument } from './schemas/user.schema';
-import { CreateUserDto, LoginUserDto } from '../../../libs/common/src/dto/create-user.dto';
+import { CreateUserDto, LoginUserDto } from '@app/common';
 import { RpcException } from '@nestjs/microservices';
 
 @Injectable()
@@ -14,7 +14,7 @@ export class AuthServiceService {
     private jwtService: JwtService,
   ) { }
 
-  // 1. REGISTER LOGIC
+  // Register a new user with hashed password and return success message
   async register(createUserDto: CreateUserDto) {
     const { email, password, name, role } = createUserDto;
 
@@ -44,7 +44,7 @@ export class AuthServiceService {
 
 
 
-  // 2. LOGIN LOGIC
+  // Authenticate user credentials and return JWT access token with user details
   async login(loginUserDto: LoginUserDto) {
     const { email, password } = loginUserDto;
 
@@ -99,12 +99,12 @@ export class AuthServiceService {
 
 
 
-  // 3. VALIDATE TOKEN (Gateway use karega baad mein)
+  // Validate and return user details by user ID (excluding password)
   async validateUser(userId: string) {
     return this.userModel.findById(userId).select('-password');
   }
 
-  // 4. Get All Users (for Admin to assign to projects)
+  // Get all users with USER role (excluding password and ADMIN users)
   async getAllUsers() {
     try {
       const users = await this.userModel.find({ role: 'USER' }).select('-password').exec();
@@ -114,6 +114,7 @@ export class AuthServiceService {
     }
   }
 
+  // Verify JWT token and return decoded payload or throw exception if invalid
   async verifyToken(token: string) {
     try {
       return await this.jwtService.verifyAsync(token);

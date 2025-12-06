@@ -13,7 +13,7 @@ export class TaskServiceService {
     @Inject('PROJECT_SERVICE') private readonly projectClient: ClientProxy,
   ) { }
 
-  // 1. Create Task
+  // Create a new task after validating project exists via project microservice
   async create(createTaskDto: CreateTaskDto) {
     // Step A: Validate Project Exists (Microservice Call)
     // Hum Project Service ko bol rahe hain: "Bhai check kar ye ID sahi hai?"
@@ -35,12 +35,12 @@ export class TaskServiceService {
     return newTask.save();
   }
 
-  // 2. Get Tasks by Project
+  // Get all tasks associated with a specific project ID
   async findByProject(projectId: string) {
     return this.taskModel.find({ projectId: new Types.ObjectId(projectId) }).exec();
   }
 
-  // 3. Update Status
+  // Update task status to TO_DO, IN_PROGRESS, or DONE and return updated task
   async updateStatus(taskId: string, updateTaskStatusDto: UpdateTaskStatusDto) {
     return this.taskModel.findByIdAndUpdate(
       taskId,

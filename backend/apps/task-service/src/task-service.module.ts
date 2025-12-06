@@ -8,12 +8,13 @@ import { Task, TaskSchema } from './schemas/task.schema';
 
 @Module({
   imports: [
+    // Load configuration module to access environment variables from .env file
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: './.env',
     }),
 
-    // 1. Database Connection
+    // Connect to MongoDB database using connection URI from environment variables
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
       useFactory: async (configService: ConfigService) => ({
@@ -22,10 +23,10 @@ import { Task, TaskSchema } from './schemas/task.schema';
       inject: [ConfigService],
     }),
 
-    // 2. Register Schema
+    // Register Task schema for database operations
     MongooseModule.forFeature([{ name: Task.name, schema: TaskSchema }]),
 
-    // 3. Register PROJECT_SERVICE (Taaki hum project validate kar sakein)
+    // Register PROJECT_SERVICE client to validate project existence before creating tasks
     ClientsModule.registerAsync([
       {
         name: 'PROJECT_SERVICE',
