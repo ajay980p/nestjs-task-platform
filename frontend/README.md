@@ -1,6 +1,14 @@
-# React + Vite
+# Project Manager
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A modern project management application built with React, Vite, and NestJS microservices architecture.
+
+## Features
+
+- User Authentication (Login/Register)
+- Role-based Access Control (Admin/User)
+- Project Management
+- Task Management with Kanban Board
+- Real-time Status Updates
 
 Currently, two official plugins are available:
 

@@ -228,16 +228,18 @@ const ProjectDetailPage = () => {
 
       {/* Main Content - Kanban Board */}
       <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Add Task Button */}
-        <div className="mb-6">
-          <button
-            onClick={handleOpenTaskModal}
-            className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-md font-semibold hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors shadow-md"
-          >
-            <Plus className="h-5 w-5" />
-            <span>Add New Task</span>
-          </button>
-        </div>
+        {/* Add Task Button - Only visible to ADMIN */}
+        {user?.role === 'ADMIN' && (
+          <div className="mb-6">
+            <button
+              onClick={handleOpenTaskModal}
+              className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-md font-semibold hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 transition-colors shadow-md"
+            >
+              <Plus className="h-5 w-5" />
+              <span>Add New Task</span>
+            </button>
+          </div>
+        )}
 
         {/* Kanban Board - Three Columns */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
