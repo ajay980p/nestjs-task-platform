@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty, IsOptional, IsEnum, IsMongoId, IsDateString } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional, IsEnum, IsMongoId, IsDateString, MinLength, MaxLength } from 'class-validator';
 
 export enum TaskStatus {
     TODO = 'TO_DO',
@@ -8,26 +8,31 @@ export enum TaskStatus {
 
 export class CreateTaskDto {
     @IsString()
-    @IsNotEmpty()
+    @IsNotEmpty({ message: 'Task title is required' })
+    @MinLength(3, { message: 'Task title must be at least 3 characters long' })
+    @MaxLength(100, { message: 'Task title must be less than 100 characters' })
     title: string;
 
     @IsString()
     @IsOptional()
+    @MaxLength(500, { message: 'Description must be less than 500 characters' })
     description?: string;
 
-    @IsDateString() // Valid ISO Date string check karega
+    @IsDateString({}, { message: 'Due date must be a valid date string' })
+    @IsNotEmpty({ message: 'Due date is required' })
     dueDate: string;
 
-    @IsMongoId()
-    projectId: string; // Task kis project ka hai
+    @IsMongoId({ message: 'Project ID must be a valid MongoDB ID' })
+    @IsNotEmpty({ message: 'Project ID is required' })
+    projectId: string;
 
     @IsOptional()
-    @IsMongoId()
-    assignedTo?: string; // Kis employee ko dena hai
+    @IsMongoId({ message: 'Assigned user ID must be a valid MongoDB ID' })
+    assignedTo?: string;
 }
 
-// Update ke liye bhi DTO chahiye hoga (Status change karne ke liye)
 export class UpdateTaskStatusDto {
-    @IsEnum(TaskStatus)
+    @IsEnum(TaskStatus, { message: 'Status must be one of: TO_DO, IN_PROGRESS, DONE' })
+    @IsNotEmpty({ message: 'Status is required' })
     status: TaskStatus;
 }
