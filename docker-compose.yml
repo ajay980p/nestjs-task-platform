@@ -1,5 +1,18 @@
 services:
 
+  # 0. MongoDB (using existing container's network)
+  mongodb:
+    image: mongodb/mongodb-community-server:7.0
+    container_name: mongodb
+    ports:
+      - '27017:27017'
+    networks:
+      - task-network
+    restart: unless-stopped
+    # Use existing volume if any
+    # volumes:
+    #   - mongodb_data:/data/db
+
   # 1. API Gateway
   api-gateway:
     build:
@@ -18,6 +31,7 @@ services:
       - PORT=3000
       - FRONTEND_URL=http://localhost:5173
     depends_on:
+      - mongodb
       - auth-service
       - project-service
       - task-service
@@ -33,8 +47,8 @@ services:
     ports:
       - '3001:3001'
     environment:
-      # Connect to MongoDB using host gateway (works across networks)
-      - MONGO_URI=mongodb://172.17.0.2:27017/task-manager
+      # Connect to MongoDB container (same network)
+      - MONGO_URI=mongodb://mongodb:27017/task-manager
       - JWT_SECRET=super_secret_key_for_assessment
       - AUTH_HOST=0.0.0.0
       - AUTH_PORT=3001
@@ -50,8 +64,8 @@ services:
     ports:
       - '3002:3002'
     environment:
-      # Connect to MongoDB using host gateway (works across networks)
-      - MONGO_URI=mongodb://172.17.0.2:27017/task-manager
+      # Connect to MongoDB container (same network)
+      - MONGO_URI=mongodb://mongodb:27017/task-manager
       - PROJECT_HOST=0.0.0.0
       - PROJECT_PORT=3002
     networks:
@@ -66,8 +80,8 @@ services:
     ports:
       - '3003:3003'
     environment:
-      # Connect to MongoDB using host gateway (works across networks)
-      - MONGO_URI=mongodb://172.17.0.2:27017/task-manager
+      # Connect to MongoDB container (same network)
+      - MONGO_URI=mongodb://mongodb:27017/task-manager
       - TASK_HOST=0.0.0.0
       - TASK_PORT=3003
     depends_on:
@@ -93,4 +107,6 @@ services:
 networks:
   task-network:
     driver: bridge
-    external: false
+
+volumes:
+  mongodb_data:
