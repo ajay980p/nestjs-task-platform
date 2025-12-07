@@ -28,7 +28,7 @@ services:
       - TASK_HOST=task-service
       - TASK_PORT=3003
       - PORT=3000
-      - FRONTEND_URL=http://80.225.204.112:5173
+      - FRONTEND_URL=http://80.225.204.112/task-manager
     depends_on:
       - mongodb
       - auth-service
@@ -97,7 +97,7 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        - VITE_API_BASE_URL=http://80.225.204.112:3000
+        - VITE_API_BASE_URL=http://80.225.204.112/task-manager/api
     container_name: task-manager-frontend
     ports:
       - '5173:5173'

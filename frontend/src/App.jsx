@@ -8,7 +8,7 @@ import PublicRoute from './components/PublicRoute';
 
 function App() {
   return (
-    <Router>
+    <Router basename="/task-manager">
       <Routes>
         {/* Public Routes - Redirect to dashboard if already logged in (cookie check) */}
         <Route

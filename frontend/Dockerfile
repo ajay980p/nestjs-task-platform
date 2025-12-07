@@ -3,7 +3,7 @@ FROM node:20-alpine
 WORKDIR /app
 
 # Build argument for API URL
-ARG VITE_API_BASE_URL=http://localhost:3000
+ARG VITE_API_BASE_URL=http://80.225.204.112/task-manager/api
 
 # Set environment variable for build
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
