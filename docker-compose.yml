@@ -93,11 +93,11 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        - VITE_API_BASE_URL=http://80.225.204.112:3000
     container_name: task-manager-frontend
     ports:
       - '5173:5173'
-    environment:
-      - VITE_API_BASE_URL=http://80.225.204.112:3000
     depends_on:
       - api-gateway
     networks:
