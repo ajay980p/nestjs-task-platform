@@ -18,6 +18,7 @@ services:
       - TASK_HOST=task-service
       - TASK_PORT=3003
       - PORT=3000
+      - FRONTEND_URL=http://localhost:5173
     depends_on:
       - auth-service
       - project-service
@@ -37,7 +38,7 @@ services:
       # Connect to MongoDB on the host machine (VPS)
       - MONGO_URI=mongodb://host.docker.internal:27017/task-manager
       - JWT_SECRET=super_secret_key_for_assessment
-      - AUTH_HOST=localhost
+      - AUTH_HOST=0.0.0.0
       - AUTH_PORT=3001
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -54,7 +55,7 @@ services:
       - '3002:3002'
     environment:
       - MONGO_URI=mongodb://host.docker.internal:27017/task-manager
-      - PROJECT_HOST=localhost
+      - PROJECT_HOST=0.0.0.0
       - PROJECT_PORT=3002
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -71,7 +72,7 @@ services:
       - '3003:3003'
     environment:
       - MONGO_URI=mongodb://host.docker.internal:27017/task-manager
-      - TASK_HOST=localhost
+      - TASK_HOST=0.0.0.0
       - TASK_PORT=3003
     extra_hosts:
       - "host.docker.internal:host-gateway"
@@ -89,7 +90,7 @@ services:
     ports:
       - '5173:5173'
     environment:
-      - VITE_API_URL=http://localhost:3000
+      - VITE_API_BASE_URL=http://localhost:3000
     depends_on:
       - api-gateway
     networks:
