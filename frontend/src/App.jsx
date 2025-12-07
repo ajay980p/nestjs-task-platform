@@ -7,8 +7,11 @@ import ProtectedRoute from './components/ProtectedRoute';
 import PublicRoute from './components/PublicRoute';
 
 function App() {
+  // Use basename only in production (when base path is set)
+  const basename = import.meta.env.VITE_BASE_PATH || '';
+  
   return (
-    <Router basename="/task-manager">
+    <Router basename={basename}>
       <Routes>
         {/* Public Routes - Redirect to dashboard if already logged in (cookie check) */}
         <Route

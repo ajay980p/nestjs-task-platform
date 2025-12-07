@@ -1,8 +1,9 @@
+# Local Development Dockerfile for Frontend
 FROM node:20-alpine
 
 WORKDIR /app
 
-# Build arguments (passed from docker-compose.yml)
+# Build arguments for local development
 ARG VITE_API_BASE_URL=http://localhost:3000
 ARG VITE_BASE_PATH=
 
@@ -13,9 +14,13 @@ ENV VITE_BASE_PATH=$VITE_BASE_PATH
 COPY package*.json ./
 COPY . .
 
+# Use local vite config (no base path) if VITE_BASE_PATH is empty
+RUN if [ -z "$VITE_BASE_PATH" ]; then cp vite.config.local.js vite.config.js; fi
+
 RUN npm ci
 RUN npm run build
 
 EXPOSE 5173
 
 CMD ["npx", "vite", "preview", "--host", "0.0.0.0", "--port", "5173"]
+

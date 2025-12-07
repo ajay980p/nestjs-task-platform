@@ -1,3 +1,6 @@
+# Local Development Docker Compose
+# Usage: docker compose -f docker-compose.local.yml up -d
+
 services:
 
   # 0. MongoDB
@@ -28,7 +31,7 @@ services:
       - TASK_HOST=task-service
       - TASK_PORT=3003
       - PORT=3000
-      - FRONTEND_URL=http://80.225.204.112/task-manager
+      - FRONTEND_URL=http://localhost:5173
     depends_on:
       - mongodb
       - auth-service
@@ -46,7 +49,6 @@ services:
     ports:
       - '3001:3001'
     environment:
-      # Connect to MongoDB container (same network)
       - MONGO_URI=mongodb://mongodb:27017/task-manager
       - JWT_SECRET=super_secret_key_for_assessment
       - AUTH_HOST=0.0.0.0
@@ -63,7 +65,6 @@ services:
     ports:
       - '3002:3002'
     environment:
-      # Connect to MongoDB container (same network)
       - MONGO_URI=mongodb://mongodb:27017/task-manager
       - PROJECT_HOST=0.0.0.0
       - PROJECT_PORT=3002
@@ -79,11 +80,9 @@ services:
     ports:
       - '3003:3003'
     environment:
-      # Connect to MongoDB container (same network)
       - MONGO_URI=mongodb://mongodb:27017/task-manager
       - TASK_HOST=0.0.0.0
       - TASK_PORT=3003
-      # Connect to Project Service (for task validation)
       - PROJECT_HOST=project-service
       - PROJECT_PORT=3002
     depends_on:
@@ -91,14 +90,14 @@ services:
     networks:
       - task-network
 
-  # 5. Frontend (React)
+  # 5. Frontend (React) - Local Development
   frontend:
     build:
       context: ./frontend
-      dockerfile: Dockerfile
+      dockerfile: ../Dockerfile.local
       args:
-        - VITE_API_BASE_URL=http://80.225.204.112/task-manager/api
-        - VITE_BASE_PATH=/task-manager
+        - VITE_API_BASE_URL=http://localhost:3000
+        - VITE_BASE_PATH=
     container_name: task-manager-frontend
     ports:
       - '5173:5173'
@@ -113,3 +112,4 @@ networks:
 
 volumes:
   mongodb_data:
+
