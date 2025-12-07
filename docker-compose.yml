@@ -33,13 +33,11 @@ services:
     ports:
       - '3001:3001'
     environment:
-      # Connect to MongoDB on the host machine (VPS)
-      - MONGO_URI=mongodb://host.docker.internal:27017/task-manager
+      # Connect to existing MongoDB container (same network)
+      - MONGO_URI=mongodb://mongodb:27017/task-manager
       - JWT_SECRET=super_secret_key_for_assessment
       - AUTH_HOST=0.0.0.0
       - AUTH_PORT=3001
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     networks:
       - task-network
 
@@ -52,11 +50,10 @@ services:
     ports:
       - '3002:3002'
     environment:
-      - MONGO_URI=mongodb://host.docker.internal:27017/task-manager
+      # Connect to existing MongoDB container (same network)
+      - MONGO_URI=mongodb://mongodb:27017/task-manager
       - PROJECT_HOST=0.0.0.0
       - PROJECT_PORT=3002
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     networks:
       - task-network
 
@@ -69,11 +66,10 @@ services:
     ports:
       - '3003:3003'
     environment:
-      - MONGO_URI=mongodb://host.docker.internal:27017/task-manager
+      # Connect to existing MongoDB container (same network)
+      - MONGO_URI=mongodb://mongodb:27017/task-manager
       - TASK_HOST=0.0.0.0
       - TASK_PORT=3003
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     depends_on:
       - project-service
     networks:
@@ -97,3 +93,4 @@ services:
 networks:
   task-network:
     driver: bridge
+    external: false
