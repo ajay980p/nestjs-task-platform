@@ -1,17 +1,16 @@
 services:
 
-  # 0. MongoDB (using existing container's network)
+  # 0. MongoDB
   mongodb:
-    image: mongodb/mongodb-community-server:7.0
+    image: mongo:7.0
     container_name: mongodb
     ports:
       - '27017:27017'
+    volumes:
+      - mongodb_data:/data/db
     networks:
       - task-network
     restart: unless-stopped
-    # Use existing volume if any
-    # volumes:
-    #   - mongodb_data:/data/db
 
   # 1. API Gateway
   api-gateway:
