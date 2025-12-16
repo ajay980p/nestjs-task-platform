@@ -1,5 +1,5 @@
 import { Controller } from '@nestjs/common';
-import { MessagePattern, Payload, RpcException } from '@nestjs/microservices';
+import { MessagePattern, Payload } from '@nestjs/microservices';
 import { AuthServiceService } from './auth-service.service';
 import { CreateUserDto, LoginUserDto } from '@app/common';
 
@@ -48,14 +48,6 @@ export class AuthServiceController {
   // Get all users with USER role (excluding ADMIN users)
   @MessagePattern({ cmd: 'get_all_users' })
   async getAllUsers(@Payload() data?: any) {
-    try {
-      const users = await this.authService.getAllUsers();
-      return users;
-    } catch (error) {
-      throw new RpcException({
-        status: 500,
-        message: error.message || 'Failed to fetch users',
-      });
-    }
+    return this.authService.getAllUsers();
   }
 }

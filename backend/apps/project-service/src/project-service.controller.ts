@@ -1,5 +1,5 @@
 import { Controller } from '@nestjs/common';
-import { MessagePattern, Payload, RpcException } from '@nestjs/microservices';
+import { MessagePattern, Payload } from '@nestjs/microservices';
 import { ProjectServiceService } from './project-service.service';
 import { CreateProjectDto, UpdateProjectDto } from '@app/common';
 
@@ -10,67 +10,30 @@ export class ProjectServiceController {
   // Create a new project with title, description, and assigned users
   @MessagePattern({ cmd: 'create_project' })
   async create(@Payload() data: { dto: CreateProjectDto; userId: string }) {
-    try {
-      return await this.projectService.create(data.dto, data.userId);
-    } catch (error) {
-      throw new RpcException({
-        status: 500,
-        message: error.message || 'Failed to create project',
-      });
-    }
+    return await this.projectService.create(data.dto, data.userId);
   }
 
   // Get all projects created by a specific user (typically used by Admin to see their own projects)
   @MessagePattern({ cmd: 'get_all_projects' })
   async findAll(@Payload() data: { userId: string }) {
-    try {
-      return await this.projectService.findAll(data.userId);
-    } catch (error) {
-      throw new RpcException({
-        status: 500,
-        message: error.message || 'Failed to fetch all projects',
-      });
-    }
+    return await this.projectService.findAll(data.userId);
   }
 
   // Get all projects assigned to a specific user
   @MessagePattern({ cmd: 'get_my_projects' })
   async findByUser(@Payload() userId: string) {
-    try {
-      return await this.projectService.findByUser(userId);
-    } catch (error) {
-      throw new RpcException({
-        status: 500,
-        message: error.message || 'Failed to fetch user projects',
-      });
-    }
+    return await this.projectService.findByUser(userId);
   }
 
   // Get a single project by its ID
   @MessagePattern({ cmd: 'get_project_by_id' })
   async findOne(@Payload() id: string) {
-    try {
-      return await this.projectService.findOne(id);
-    } catch (error) {
-      throw new RpcException({
-        status: 500,
-        message: error.message || 'Failed to fetch project',
-      });
-    }
+    return await this.projectService.findOne(id);
   }
 
   // Update an existing project's details (title, description, assigned users)
   @MessagePattern({ cmd: 'update_project' })
   async update(@Payload() data: { id: string; dto: UpdateProjectDto; userId?: string }) {
-    try {
-      console.log('update_project message received:', data);
-      const result = await this.projectService.update(data.id, data.dto, data.userId);
-      return result;
-    } catch (error) {
-      throw new RpcException({
-        status: 500,
-        message: error.message || 'Failed to update project',
-      });
-    }
+    return await this.projectService.update(data.id, data.dto, data.userId);
   }
 }

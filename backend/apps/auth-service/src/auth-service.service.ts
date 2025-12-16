@@ -16,30 +16,42 @@ export class AuthServiceService {
 
   // Register a new user with hashed password and return success message
   async register(createUserDto: CreateUserDto) {
-    const { email, password, name, role } = createUserDto;
+    try {
+      const { email, password, name, role } = createUserDto;
 
-    // Check if user exists
-    const existingUser = await this.userModel.findOne({ email });
-    if (existingUser) {
+      // Check if user exists
+      const existingUser = await this.userModel.findOne({ email });
+      if (existingUser) {
+        throw new RpcException({
+          status: 409,
+          message: 'User already exists',
+        });
+      }
+
+      // Hash Password
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Save User
+      const user = new this.userModel({
+        name,
+        email,
+        password: hashedPassword,
+        role,
+      });
+      await user.save();
+
+      return { message: 'User registered successfully', userId: user._id.toString() };
+    } catch (error) {
+      // Re-throw RpcException as-is (for business logic errors)
+      if (error instanceof RpcException) {
+        throw error;
+      }
+      // Handle unexpected errors
       throw new RpcException({
-        status: 409,
-        message: 'User already exists',
+        status: 500,
+        message: error.message || 'Failed to register user',
       });
     }
-
-    // Hash Password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Save User
-    const user = new this.userModel({
-      name,
-      email,
-      password: hashedPassword,
-      role,
-    });
-    await user.save();
-
-    return { message: 'User registered successfully', userId: user._id.toString() };
   }
 
 
@@ -53,7 +65,7 @@ export class AuthServiceService {
     if (!user) {
       throw new RpcException({
         status: 401,
-        message: 'Invalid credentials',
+        message: 'Invalid credentials! Please check your email and password.',
       });
     }
 
@@ -62,7 +74,7 @@ export class AuthServiceService {
     if (!isPasswordValid) {
       throw new RpcException({
         status: 401,
-        message: 'Invalid credentials',
+        message: 'Invalid credentials! Please check your email and password.',
       });
     }
 
@@ -110,7 +122,10 @@ export class AuthServiceService {
       const users = await this.userModel.find({ role: 'USER' }).select('-password').exec();
       return users || [];
     } catch (error) {
-      throw new Error(`Failed to fetch users: ${error.message}`);
+      throw new RpcException({
+        status: 500,
+        message: error.message || 'Failed to fetch users',
+      });
     }
   }
 
