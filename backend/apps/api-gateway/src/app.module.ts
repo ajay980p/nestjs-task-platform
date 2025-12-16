@@ -14,13 +14,11 @@ import { TasksService } from './services/tasks.service';
 
 @Module({
   imports: [
-    // 1. Config Module Global Load (Sabse pehle ye chalega)
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: './.env',
     }),
 
-    // 2. Clients Module (Async Registration)
     ClientsModule.registerAsync([
       {
         name: 'AUTH_SERVICE',
@@ -28,8 +26,8 @@ import { TasksService } from './services/tasks.service';
         useFactory: (configService: ConfigService) => ({
           transport: Transport.TCP,
           options: {
-            host: configService.get('AUTH_HOST'), // .env se 'localhost'
-            port: configService.get('AUTH_PORT'), // .env se 3001
+            host: configService.get('AUTH_HOST'),
+            port: configService.get('AUTH_PORT'),
           },
         }),
         inject: [ConfigService],

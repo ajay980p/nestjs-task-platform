@@ -6,7 +6,7 @@ import { CreateTaskDto, UpdateTaskStatusDto } from '@app/common';
 export class TasksService {
   constructor(
     @Inject('TASK_SERVICE') private readonly taskClient: ClientProxy,
-  ) {}
+  ) { }
 
   createTask(createTaskDto: CreateTaskDto) {
     return this.taskClient.send({ cmd: 'create_task' }, createTaskDto);
@@ -20,4 +20,3 @@ export class TasksService {
     return this.taskClient.send({ cmd: 'update_task_status' }, { taskId, dto });
   }
 }
-

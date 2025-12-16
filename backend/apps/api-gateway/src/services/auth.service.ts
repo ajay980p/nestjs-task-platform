@@ -10,12 +10,10 @@ export class AuthService {
     @Inject('AUTH_SERVICE') private readonly authClient: ClientProxy,
   ) { }
 
-  // Register Request Forward karna
   async createUser(createUserDto: CreateUserDto) {
     return firstValueFrom(
       this.authClient.send({ cmd: 'register' }, createUserDto).pipe(
         catchError((error) => {
-          // Handle RpcException format
           const errorObj = error.error || error;
           const statusCode = errorObj?.status || error.status || 500;
           const message = errorObj?.message || error.message || 'Registration failed';
@@ -29,12 +27,10 @@ export class AuthService {
     );
   }
 
-  // Login Request Forward karna with cookie handling
   async login(loginUserDto: LoginUserDto, res: Response) {
     const result = await firstValueFrom(
       this.authClient.send({ cmd: 'login' }, loginUserDto).pipe(
         catchError((error) => {
-          // Handle RpcException format
           const errorObj = error.error || error;
           const statusCode = errorObj?.status || error.status || 500;
           const message = errorObj?.message || error.message || 'Login failed';
@@ -47,7 +43,6 @@ export class AuthService {
       )
     );
 
-    // Set token in HTTP-only cookie (1 day expiry)
     res.cookie('accessToken', result.accessToken, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -56,7 +51,6 @@ export class AuthService {
       path: '/',
     });
 
-    // Return response WITHOUT accessToken (token is in cookie)
     return {
       message: 'Login successful',
       user: result.user,
@@ -65,12 +59,11 @@ export class AuthService {
 
   // Logout - Clear cookie
   logout(res: Response) {
-    // Clear the accessToken cookie
     res.cookie('accessToken', '', {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'strict',
-      maxAge: 0, // Expire immediately
+      maxAge: 0,
       path: '/',
     });
     return { message: 'Logged out successfully' };
@@ -122,4 +115,3 @@ export class AuthService {
     }));
   }
 }
-
